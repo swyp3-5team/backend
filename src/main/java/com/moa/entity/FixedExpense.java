@@ -36,10 +36,6 @@ public class FixedExpense {
     @Embedded
     private RepeatRule repeatRule;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "PAYMENT_TYPE")
-    private PaymentType paymentType;
-
     @CreatedDate
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
@@ -51,14 +47,14 @@ public class FixedExpense {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "USER_ID",
-            foreignKey = @ForeignKey(name = "FK_BUDGET_USER")
+            foreignKey = @ForeignKey(name = "FK_FIXED_EXPENSE_USER")
     )
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "CATEGORY_ID",
-            foreignKey = @ForeignKey(name = "FK_BUDGET_CATEGORY")
+            foreignKey = @ForeignKey(name = "FK_FIXED_EXPENSE_CATEGORY")
     )
     private Category category;
 }
