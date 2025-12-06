@@ -15,17 +15,19 @@ public class LoginResponse {
     private String provider;
     private String userName;
     private String userEmail;
-    private String loginToken;
+    private String accessToken;
+    private String refreshToken;
     private boolean isNewUser;
     private String message;
 
-    public static LoginResponse from(User user, String provider, String loginToken, boolean isNewUser) {
+    public static LoginResponse from(User user, String provider, String accessToken, String refreshToken, boolean isNewUser) {
         return LoginResponse.builder()
                 .userId(user.getUserId())
                 .provider(provider)
                 .userName(user.getUserName())
                 .userEmail(user.getUserEmail())
-                .loginToken(loginToken)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
                 .isNewUser(isNewUser)
                 .message(isNewUser ? "회원가입 및 로그인 성공" : "로그인 성공")
                 .build();

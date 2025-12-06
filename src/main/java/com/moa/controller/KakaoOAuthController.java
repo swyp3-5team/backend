@@ -4,10 +4,9 @@ import com.moa.config.KakaoOAuthConfig;
 import com.moa.dto.LoginResponse;
 import com.moa.dto.KakaoTokenResponse;
 import com.moa.dto.KakaoUserInfo;
-import com.moa.entity.LoginToken;
 import com.moa.entity.Provider;
 import com.moa.entity.User;
-import com.moa.service.LoginTokenService;
+import com.moa.service.JwtService;
 import com.moa.service.ProviderService;
 import com.moa.service.UserService;
 import com.moa.service.KakaoOAuthService;
@@ -41,7 +40,7 @@ public class KakaoOAuthController {
     private final KakaoOAuthService kakaoOAuthService;
     private final UserService userService;
     private final ProviderService providerService;
-    private final LoginTokenService loginTokenService;
+    private final JwtService jwtService;
     private final WebClient webClient = WebClient.builder().build();
 
     @GetMapping("/authorize")
@@ -101,18 +100,16 @@ public class KakaoOAuthController {
                     : null;
             providerService.saveOrUpdateProvider(user.getUserId(), "KAKAO", tokenResponse.getAccessToken(), tokenExpiresAt);
 
-            // 5. 로그인 토큰 생성 (앱에서 사용할 자체 토큰)
-            LoginToken loginToken = loginTokenService.createToken(
-                    user.getUserId(),
-                    deviceId != null ? deviceId : "UNKNOWN",
-                    deviceName != null ? deviceName : "UNKNOWN",
-                    30 * 24 * 60 * 60 // 30일
-            );
+            // 5. JWT 토큰 생성 (Access Token + Refresh Token)
+            String device = deviceId != null ? deviceId : "UNKNOWN";
+            Map<String, String> tokens = jwtService.generateTokens(user.getUserId(), device);
+            String accessToken = tokens.get("accessToken");
+            String refreshToken = tokens.get("refreshToken");
 
             log.info("카카오 로그인/가입 완료 - userId: {}, isNewUser: {}", user.getUserId(), isNewUser);
 
             // 6. LoginResponse 생성
-            LoginResponse response = LoginResponse.from(user, "KAKAO", loginToken.getToken(), isNewUser);
+            LoginResponse response = LoginResponse.from(user, "KAKAO", accessToken, refreshToken, isNewUser);
 
             return isNewUser
                     ? ResponseEntity.status(HttpStatus.CREATED).body(response)
@@ -196,10 +193,7 @@ public class KakaoOAuthController {
             // 4. DB에서 Provider 삭제
             providerService.deleteAllProvidersByUserId(userId);
 
-            // 5. 로그인 토큰 삭제
-            loginTokenService.deleteAllTokensByUserId(userId);
-
-            // 6. 사용자 Soft Delete
+            // 5. 사용자 Soft Delete (JWT는 서버에 저장하지 않음)
             userService.deleteUser(userId);
 
             log.info("카카오 회원 탈퇴 완료 - userId: {}", userId);

@@ -1,9 +1,7 @@
 package com.moa.config;
 
-import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
@@ -25,6 +23,15 @@ public class SwaggerConfig {
         testServer.setUrl("http://49.50.133.51:8080");
         testServer.setDescription("NCP 테스트 서버");
 
+        SecurityScheme securityScheme = new SecurityScheme()
+                .type(SecurityScheme.Type.HTTP)
+                .scheme("bearer")
+                .bearerFormat("JWT")
+                .in(SecurityScheme.In.HEADER)
+                .name("Authorization");
+
+        SecurityRequirement securityRequirement = new SecurityRequirement().addList("BearerAuth");
+
         Info info = new Info()
                 .title("Moa App API")
                 .version("1.0.0")
@@ -32,6 +39,9 @@ public class SwaggerConfig {
 
         return new OpenAPI()
                 .info(info)
-                .servers(List.of(localServer, testServer));
+                .servers(List.of(localServer, testServer))
+                .addSecurityItem(securityRequirement)
+                .schemaRequirement("BearerAuth", securityScheme)
+                ;
     }
 }
