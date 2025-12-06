@@ -1,0 +1,51 @@
+package com.moa.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDateTime;
+
+@EntityListeners(AuditingEntityListener.class)
+@Entity
+@Table(name = "budget")
+@Data
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = lombok.AccessLevel.PRIVATE)
+@Builder
+public class Budget {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "BUDGET_ID")
+    private Long id;
+
+    @Column(name = "AMOUNT")
+    private Long amount;
+
+    @Column(name = "BUDGET_MEMO")
+    private String memo;
+
+    @CreatedDate
+    @Column(name = "CREATED_AT")
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(name = "UPDATED_AT")
+    private LocalDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "CATEGORY_ID",
+            foreignKey = @ForeignKey(name = "FK_BUDGET_CATEGORY")
+    )
+    private Category category;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(
+            name = "USER_ID",
+            foreignKey = @ForeignKey(name = "FK_BUDGET_USER")
+    )
+    private User user;
+}
