@@ -30,10 +30,10 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{secrets.SSH_HOST}}
-          username: ${{secrets.SSH_USERNAME}}
+          username: ${{secrets.SSH_USER}}
           key: ${{secrets.SSH_KEY}}
-          source: build/libs/*.jar
-          target: /app/moa-app-1.0.0.jar
+          source: target/*.jar
+          target: /app
           overwrite: 'true'
 
 
