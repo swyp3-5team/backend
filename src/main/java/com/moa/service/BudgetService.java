@@ -59,7 +59,7 @@ public class BudgetService {
 
     @Transactional
     public BudgetResponse updateBudgetAmount(UpdateBudgetRequest request, Long userId) {
-        Budget budget = budgetRepository.findByBudgetIdAndUserId(request.budgetId(),userId).orElseThrow(
+        Budget budget = budgetRepository.findByIdAndUser_UserId(request.budgetId(),userId).orElseThrow(
                 () -> new IllegalArgumentException("해당 ID의 예산이 존재하지 않습니다.")
         );
 

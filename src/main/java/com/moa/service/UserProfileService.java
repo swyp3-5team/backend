@@ -38,7 +38,7 @@ public class UserProfileService {
     }
 
     public UserProfileResponse getProfile(Long userId) {
-        UserProfile userProfile = userProfileRepository.findByUserId(userId).orElseThrow(
+        UserProfile userProfile = userProfileRepository.findByUser_UserId(userId).orElseThrow(
                 () -> new ProfileNotFoundException("프로필을 찾을 수 없습니다.")
         );
 
