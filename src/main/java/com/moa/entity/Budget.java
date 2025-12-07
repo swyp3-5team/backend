@@ -6,6 +6,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @EntityListeners(AuditingEntityListener.class)
@@ -22,12 +23,17 @@ public class Budget {
     @Column(name = "BUDGET_ID")
     private Long id;
 
-    @Column(name = "AMOUNT")
+    @Column(name = "AMOUNT" , nullable = false)
     private Long amount;
 
     @Column(name = "BUDGET_MEMO")
     private String memo;
 
+    @Column(name = "START_DATE", nullable = false)
+    private LocalDate startDate;
+
+    @Column(name = "END_DATE")
+    private LocalDate endDate;
     @CreatedDate
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
@@ -48,4 +54,8 @@ public class Budget {
             foreignKey = @ForeignKey(name = "FK_BUDGET_USER")
     )
     private User user;
+
+    public void updateAmount(Long amount) {
+        this.amount = amount;
+    }
 }

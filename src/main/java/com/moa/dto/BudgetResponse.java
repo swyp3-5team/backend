@@ -3,6 +3,8 @@ package com.moa.dto;
 import com.moa.entity.Budget;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.LocalDate;
+
 public record BudgetResponse(
         @Schema(description = "예산 ID" , example = "1")
         Long id,
@@ -17,7 +19,13 @@ public record BudgetResponse(
         Long categoryId,
 
         @Schema(description = "유저 ID")
-        Long userId
+        Long userId,
+
+        @Schema(description = "예산 시작 날짜", example = "2025-12-16")
+        LocalDate startDate,
+
+        @Schema(description = "예산 종료 날짜", example = "2025-12-31")
+        LocalDate endDate
 ) {
     public static BudgetResponse from(Budget budget) {
         return new BudgetResponse(
@@ -25,7 +33,9 @@ public record BudgetResponse(
                 budget.getAmount(),
                 budget.getMemo(),
                 budget.getCategory().getId(),
-                budget.getUser().getUserId()
+                budget.getUser().getUserId(),
+                budget.getStartDate(),
+                budget.getEndDate()
         );
     }
 }
