@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,9 +31,9 @@ public class BudgetController {
             @RequestBody CreateBudgetRequest request,
             @CurrentUserId Long userId
     ){
-        return ResponseEntity.ok(
-                budgetService.createBudget(request,userId)
-        );
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(budgetService.createBudget(request,userId));
     }
 
     @Operation(summary = "예산 조회", description = "연-월별 예산 조회")

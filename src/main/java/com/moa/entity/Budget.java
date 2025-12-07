@@ -48,6 +48,7 @@ public class Budget {
             foreignKey = @ForeignKey(name = "FK_BUDGET_CATEGORY")
     )
     private Category category;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "USER_ID",

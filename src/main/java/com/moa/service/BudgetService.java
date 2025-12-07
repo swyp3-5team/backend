@@ -10,18 +10,23 @@ import com.moa.repository.BudgetRepository;
 import com.moa.repository.CategoryRepository;
 import com.moa.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
+@Slf4j
 public class BudgetService {
     private final BudgetRepository budgetRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
 
+    @Transactional
     public BudgetResponse createBudget(CreateBudgetRequest request, Long userId) {
         User user = userRepository.findById(userId).orElseThrow(
                 () -> new IllegalArgumentException("존재하지 않는 유저입니다.")
@@ -52,6 +57,7 @@ public class BudgetService {
                 .toList();
     }
 
+    @Transactional
     public BudgetResponse updateBudgetAmount(UpdateBudgetRequest request, Long userId) {
         Budget budget = budgetRepository.findByBudgetIdAndUserId(request.budgetId(),userId).orElseThrow(
                 () -> new IllegalArgumentException("해당 ID의 예산이 존재하지 않습니다.")
