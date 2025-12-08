@@ -57,5 +57,15 @@ public class BudgetController {
                 budgetService.updateBudgetAmount(request,userId)
         );
     }
-
+    
+    @Operation(summary = "예산 비활성화", description = "ID에 해당하는 예산 비활성화")
+    @PostMapping("/{budgetId}/deactivate")
+    public ResponseEntity<Long> deactivateBudget(
+        @CurrentUserId  Long userId,
+        @PathVariable Long budgetId
+    ){
+        return ResponseEntity.status(HttpStatus.ACCEPTED).body(
+                budgetService.deactivateBudget(userId,budgetId)
+        );
+    }
 }

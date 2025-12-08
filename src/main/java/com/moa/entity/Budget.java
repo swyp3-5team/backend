@@ -34,6 +34,10 @@ public class Budget {
 
     @Column(name = "END_DATE")
     private LocalDate endDate;
+
+    @Column(name = "IS_ACTIVE")
+    private Boolean isActive = true;
+
     @CreatedDate
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
@@ -58,5 +62,9 @@ public class Budget {
 
     public void updateAmount(Long amount) {
         this.amount = amount;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
     }
 }

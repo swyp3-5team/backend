@@ -68,4 +68,16 @@ public class BudgetService {
 
         return BudgetResponse.from(savedBudget);
     }
+
+    @Transactional
+    public Long deactivateBudget(Long userId, Long budgetId) {
+        Budget budget = budgetRepository.findByIdAndUser_UserId(budgetId,userId).orElseThrow(
+                () ->new IllegalArgumentException("존재하지 않는 예산입니다.")
+        );
+
+        budget.deactivate();
+        Budget savedBudget = budgetRepository.save(budget);
+
+        return savedBudget.getId();
+    }
 }
