@@ -4,3 +4,4 @@ target/
 *.md
 src/main/resources/application-dev.properties
 *.ps1
+.idea
