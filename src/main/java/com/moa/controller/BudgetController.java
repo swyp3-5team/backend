@@ -68,4 +68,9 @@ public class BudgetController {
                 budgetService.deactivateBudget(userId,budgetId)
         );
     }
+
+    @Operation(summary = "자동 예산 설정", description = "예산을 지정해주는 기능")
+    public ResponseEntity getBudgets(){
+        return null;
+    }
 }
