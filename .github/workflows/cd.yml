@@ -1,4 +1,4 @@
-name: Java CD with Gradle
+name: Java CD
 on:
   push:
     branches: [ "main" ]
@@ -32,7 +32,7 @@ jobs:
           host: ${{secrets.SSH_HOST}}
           username: ${{secrets.SSH_USER}}
           key: ${{secrets.SSH_KEY}}
-          source: target/*.jar
+          source: target/moa-app-1.0.0.jar
           target: /app
           overwrite: 'true'
 
