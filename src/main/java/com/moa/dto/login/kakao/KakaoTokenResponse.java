@@ -1,4 +1,4 @@
-package com.moa.dto;
+package com.moa.dto.login.kakao;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
@@ -22,4 +22,7 @@ public class KakaoTokenResponse {
 
     @JsonProperty("scope")
     private String scope;
+
+    @JsonProperty("id_token")
+    private String idToken;
 }

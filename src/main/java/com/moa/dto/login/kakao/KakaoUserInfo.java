@@ -1,4 +1,4 @@
-package com.moa.dto;
+package com.moa.dto.login.kakao;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
@@ -17,7 +17,7 @@ public class KakaoUserInfo {
 
         @Data
         public static class Profile {
-            private String nickname;
+            private String username;
         }
     }
 }

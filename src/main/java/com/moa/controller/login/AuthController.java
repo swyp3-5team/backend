@@ -1,4 +1,4 @@
-package com.moa.controller;
+package com.moa.controller.login;
 
 import com.moa.service.JwtService;
 import io.swagger.v3.oas.annotations.Operation;

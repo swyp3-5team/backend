@@ -1,4 +1,4 @@
-package com.moa.config;
+package com.moa.config.login.kakao;
 
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,8 +17,8 @@ public class KakaoOAuthConfig {
     @Value("${kakao.login.redirect.uri}")
     private String redirectUri;
 
-    @Value("${kakao.logout.redirect.uri}")
-    private String logoutRedirectUri;
+    @Value("${kakao.admin.key}")
+    private String adminKey;
 
     // 카카오 OAuth 인증 URL
     private static final String KAKAO_AUTH_URL = "https://kauth.kakao.com/oauth/authorize";

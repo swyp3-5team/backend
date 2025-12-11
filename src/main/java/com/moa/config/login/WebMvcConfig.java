@@ -1,4 +1,4 @@
-package com.moa.config;
+package com.moa.config.login;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;

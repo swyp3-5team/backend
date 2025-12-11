@@ -1,4 +1,4 @@
-package com.moa.service;
+package com.moa.service.login;
 
 import com.moa.entity.LoginToken;
 import com.moa.repository.LoginTokenRepository;

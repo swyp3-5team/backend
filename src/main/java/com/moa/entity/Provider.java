@@ -34,8 +34,11 @@ public class Provider {
     @Column(name = "PROVIDER", length = 50, nullable = false)
     private String provider; // KAKAO, APPLE
 
-    @Column(name = "TOKEN", length = 500, nullable = false)
+    @Column(name = "TOKEN", length = 700, nullable = false)
     private String token;
+
+    @Column(name = "OAUTH_ID", length = 300)
+    private String oauthId;
 
     @CreationTimestamp
     @Column(name = "CONNECT_AT", nullable = false, updatable = false)

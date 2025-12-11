@@ -1,4 +1,4 @@
-package com.moa.service;
+package com.moa.service.login;
 
 import com.moa.entity.Provider;
 import com.moa.repository.ProviderRepository;
@@ -24,14 +24,23 @@ public class ProviderService {
     }
 
     // 소셜 로그인 연결 생성 또는 업데이트
-    @Transactional
+    @Transactional(readOnly = false)
     public Provider saveOrUpdateProvider(Long userId, String providerName, String token, LocalDateTime tokenExpiresAt) {
+        return saveOrUpdateProvider(userId, providerName, token, tokenExpiresAt, null);
+    }
+
+    @Transactional(readOnly = false)
+    public Provider saveOrUpdateProvider(Long userId, String providerName, String token, LocalDateTime tokenExpiresAt, String oauthId) {
         Optional<Provider> existingProvider = providerRepository.findByUserIdAndProvider(userId, providerName);
 
         if (existingProvider.isPresent()) {
             // 기존 연결 - 토큰 업데이트
             Provider provider = existingProvider.get();
             provider.setToken(token);
+            
+            if (oauthId != null) {
+                provider.setOauthId(oauthId);
+            }
             provider.setTokenExpiresAt(tokenExpiresAt);
             log.info("소셜 로그인 토큰 업데이트 - userId: {}, provider: {}", userId, providerName);
             return providerRepository.save(provider);
@@ -41,6 +50,7 @@ public class ProviderService {
                     .userId(userId)
                     .provider(providerName)
                     .token(token)
+                    .oauthId(oauthId)
                     .tokenExpiresAt(tokenExpiresAt)
                     .build();
             log.info("소셜 로그인 연결 생성 - userId: {}, provider: {}", userId, providerName);
@@ -49,7 +59,7 @@ public class ProviderService {
     }
 
     // 소셜 로그인 연결 해제
-    @Transactional
+    @Transactional(readOnly = false)
     public void deleteProvider(Long userId, String providerName) {
         Optional<Provider> provider = providerRepository.findByUserIdAndProvider(userId, providerName);
         provider.ifPresent(p -> {
@@ -59,7 +69,7 @@ public class ProviderService {
     }
 
     // 사용자의 모든 소셜 로그인 연결 해제
-    @Transactional
+    @Transactional(readOnly = false)
     public void deleteAllProvidersByUserId(Long userId) {
         providerRepository.deleteByUserId(userId);
         log.info("모든 소셜 로그인 연결 해제 - userId: {}", userId);

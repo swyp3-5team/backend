@@ -1,15 +1,18 @@
-package com.moa.controller;
+package com.moa.controller.login.kakao;
 
-import com.moa.config.KakaoOAuthConfig;
-import com.moa.dto.LoginResponse;
-import com.moa.dto.KakaoTokenResponse;
-import com.moa.dto.KakaoUserInfo;
+import com.moa.annotation.CurrentUserId;
+import com.moa.config.login.kakao.KakaoOAuthConfig;
+import com.moa.dto.login.LoginResponse;
+import com.moa.dto.login.kakao.KakaoIdTokenRequest;
+import com.moa.dto.login.kakao.KakaoTokenResponse;
+import com.moa.dto.login.kakao.KakaoUserInfo;
 import com.moa.entity.Provider;
 import com.moa.entity.User;
 import com.moa.service.JwtService;
-import com.moa.service.ProviderService;
 import com.moa.service.UserService;
-import com.moa.service.KakaoOAuthService;
+import com.moa.service.login.ProviderService;
+import com.moa.service.login.kakao.KakaoOAuthService;
+import com.moa.service.login.kakao.KakaoOIDCService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,13 +41,14 @@ public class KakaoOAuthController {
 
     private final KakaoOAuthConfig kakaoConfig;
     private final KakaoOAuthService kakaoOAuthService;
+    private final KakaoOIDCService kakaoOIDCService;
     private final UserService userService;
     private final ProviderService providerService;
     private final JwtService jwtService;
     private final WebClient webClient = WebClient.builder().build();
 
     @GetMapping("/authorize")
-    @Operation(summary = "1. 카카오 로그인 URL 생성", description = "카카오 OAuth 인증 페이지로 리다이렉트할 URL을 반환합니다.")
+    @Operation(summary = "테스트1) 카카오 로그인 URL 생성", description = "카카오 OAuth 인증 페이지로 리다이렉트할 URL을 반환합니다.")
     public ResponseEntity<Map<String, String>> getAuthorizationUrl() {
         String authUrl = kakaoConfig.getAuthorizationUrl();
         log.info("카카오 인증 URL 생성: {}", authUrl);
@@ -57,7 +61,7 @@ public class KakaoOAuthController {
     }
 
     @GetMapping("/callback")
-    @Operation(summary = "2. 카카오 OAuth 콜백", description = "카카오 로그인 후 리다이렉트되는 콜백 엔드포인트입니다.")
+    @Operation(summary = "(사용X) 카카오 OAuth 콜백", description = "카카오 로그인 후 리다이렉트되는 콜백 엔드포인트입니다.")
     public ResponseEntity<LoginResponse> callback(
             @RequestParam("code") String code,
             @RequestParam(value = "deviceId", required = false) String deviceId,
@@ -71,10 +75,10 @@ public class KakaoOAuthController {
 
             // 2. Access Token으로 사용자 정보 조회
             KakaoUserInfo kakaoUserInfo = kakaoOAuthService.getUserInfo(tokenResponse.getAccessToken());
-            String username = kakaoOAuthService.getUsername(kakaoUserInfo);
             String email = kakaoOAuthService.getEmail(kakaoUserInfo);
+            String username = kakaoOAuthService.getUsername(kakaoUserInfo);
 
-            log.info("카카오 사용자 정보 조회 성공 - username: {}, email: {}", username, email);
+            log.info("카카오 사용자 정보 조회 성공 - email: {}", email);
 
             // 3. 이메일로 기존 사용자 확인
             Optional<User> existingUser = userService.getUserByEmail(email);
@@ -98,7 +102,7 @@ public class KakaoOAuthController {
             LocalDateTime tokenExpiresAt = tokenResponse.getExpiresIn() != null
                     ? LocalDateTime.now().plusSeconds(tokenResponse.getExpiresIn())
                     : null;
-            providerService.saveOrUpdateProvider(user.getUserId(), "KAKAO", tokenResponse.getAccessToken(), tokenExpiresAt);
+            providerService.saveOrUpdateProvider(user.getUserId(), "KAKAO", tokenResponse.getAccessToken(), tokenExpiresAt, kakaoUserInfo.getId().toString());
 
             // 5. JWT 토큰 생성 (Access Token + Refresh Token)
             String device = deviceId != null ? deviceId : "UNKNOWN";
@@ -159,11 +163,12 @@ public class KakaoOAuthController {
         }
     }
 
-    @DeleteMapping("/unlink/{userId}")
-    @Operation(summary = "3. 카카오 회원 탈퇴", description = "카카오 연결 해제 및 회원 탈퇴를 처리합니다.")
-    public ResponseEntity<Map<String, String>> unlinkKakao(@PathVariable Long userId) {
+    @DeleteMapping("/unlink")
+    @Operation(summary = "카카오 회원 탈퇴",
+               description = "JWT 토큰을 사용하여 카카오 연결 해제 및 회원 탈퇴를 처리합니다.")
+    public ResponseEntity<Map<String, String>> unlinkKakao(@CurrentUserId Long userId) {
         try {
-            log.info("카카오 회원 탈퇴 요청 - userId: {}", userId);
+            log.info("카카오 회원 탈퇴 요청 - userId: {} (JWT에서 추출)", userId);
 
             // 1. 사용자 존재 확인
             User user = userService.getUserById(userId)
@@ -181,12 +186,18 @@ public class KakaoOAuthController {
             Optional<Provider> kakaoProvider = providerService.getProviderByUserIdAndProvider(userId, "KAKAO");
 
             if (kakaoProvider.isPresent()) {
-                // 3. 카카오 연결 끊기 (카카오 Access Token 사용)
-                try {
-                    kakaoOAuthService.unlinkKakao(kakaoProvider.get().getToken());
-                    log.info("카카오 API 연결 끊기 성공");
-                } catch (Exception e) {
-                    log.warn("카카오 API 연결 끊기 실패 (계속 진행): {}", e.getMessage());
+                // 3. 카카오 연결 끊기 (Admin Key 사용)
+                String oauthId = kakaoProvider.get().getOauthId();
+
+                if (oauthId != null && !oauthId.isEmpty()) {
+                    try {
+                        kakaoOAuthService.unlinkKakaoByAdminKey(oauthId);
+                        log.info("카카오 API 연결 끊기 성공 (Admin Key) - oauthId: {}", oauthId);
+                    } catch (Exception e) {
+                        log.warn("카카오 API 연결 끊기 실패 (계속 진행): {}", e.getMessage());
+                    }
+                } else {
+                    log.warn("oauth_id가 없어 카카오 연결 끊기 생략 - userId: {}", userId);
                 }
             }
 
@@ -213,6 +224,91 @@ public class KakaoOAuthController {
 
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(errorResponse);
+        }
+    }
+
+    @GetMapping("/test-oidc")
+    @Operation(summary = "테스트2) Code로 ID Token 받기", description = "테스트1 URL 파라미터(Code)를 통한 ID Token을 생성합니다.")
+    public ResponseEntity<Map<String, String>> testGetIdToken(@RequestParam("code") String code) {
+        try {
+            log.info("테스트: Code로 ID Token 받기 - code: {}", code);
+
+            // 1. Code로 Token 발급
+            KakaoTokenResponse tokenResponse = getAccessToken(code);
+
+            // 2. ID Token 반환
+            Map<String, String> response = new HashMap<>();
+            response.put("id_token", tokenResponse.getIdToken());
+            response.put("access_token", tokenResponse.getAccessToken());
+            response.put("message", "이 id_token을 POST /auth/kakao/token으로 전송하세요");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("테스트 실패", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/token")
+    @Operation(summary = "카카오 OIDC 로그인 (앱 전용)",
+               description = "앱에서 발급받은 ID Token으로 로그인합니다.")
+    public ResponseEntity<LoginResponse> loginWithIdToken(@RequestBody KakaoIdTokenRequest request) {
+        try {
+            log.info("request.getIdToken(): {}", request.getIdToken());
+            log.info("카카오 OIDC 로그인 요청 - deviceId: {}", request.getDeviceId());
+
+            // 1. ID Token 서명 검증 및 사용자 정보 추출
+            Map<String, Object> userInfo = kakaoOIDCService.verifyIdToken(request.getIdToken());
+            String email = (String) userInfo.get("email");
+            String username = (String) userInfo.get("nickname");
+
+            log.info("카카오 OIDC 사용자 정보 검증 성공 - username: {}, email: {}", username, email);
+
+            // 2. 이메일로 기존 사용자 확인
+            Optional<User> existingUser = userService.getUserByEmail(email);
+            User user;
+            boolean isNewUser;
+
+            if (existingUser.isPresent()) {
+                // 기존 사용자 - 로그인
+                user = existingUser.get();
+                userService.updateLastLoginAt(user.getUserId());
+                isNewUser = false;
+                log.info("기존 사용자 로그인 - userId: {}", user.getUserId());
+            } else {
+                // 신규 사용자 - 회원가입
+                user = userService.createUser(username, email, null);
+                isNewUser = true;
+                log.info("신규 사용자 가입 - userId: {}", user.getUserId());
+            }
+
+            // 3. Provider 정보 저장/업데이트 (ID Token을 Access Token으로 저장)
+            String oauthId = userInfo.get("oauthId").toString();
+            log.info("카카오 oauthId 저장 - userId: {}, oauthId: {}", user.getUserId(), oauthId);
+            providerService.saveOrUpdateProvider(user.getUserId(), "KAKAO", request.getIdToken(), null, oauthId);
+
+            // 4. JWT 토큰 생성
+            String device = request.getDeviceId() != null ? request.getDeviceId() : "UNKNOWN";
+            Map<String, String> tokens = jwtService.generateTokens(user.getUserId(), device);
+            String accessToken = tokens.get("accessToken");
+            String refreshToken = tokens.get("refreshToken");
+
+            log.info("카카오 OIDC 로그인/가입 완료 - userId: {}, isNewUser: {}", user.getUserId(), isNewUser);
+
+            // 5. LoginResponse 생성
+            LoginResponse response = LoginResponse.from(user, "KAKAO", accessToken, refreshToken, isNewUser);
+
+            return isNewUser
+                ? ResponseEntity.status(HttpStatus.CREATED).body(response)
+                : ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("카카오 OIDC 로그인 실패", e);
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
         }
     }
 }

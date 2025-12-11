@@ -1,4 +1,4 @@
-package com.moa.config;
+package com.moa.config.login;
 
 import com.moa.annotation.CurrentUserId;
 import org.springframework.core.MethodParameter;

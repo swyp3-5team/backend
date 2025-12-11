@@ -1,7 +1,5 @@
 package com.moa.filter;
 
-import com.moa.entity.User;
-import com.moa.service.UserService;
 import com.moa.util.JwtTokenProvider;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,7 +16,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Optional;
 
 /**
  * JWT 인증 필터
@@ -30,7 +27,6 @@ import java.util.Optional;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final UserService userService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -46,16 +42,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 토큰에서 사용자 ID 추출
                 Long userId = jwtTokenProvider.getUserIdFromToken(jwt);
                 String deviceId = jwtTokenProvider.getDeviceIdFromToken(jwt);
-
-                // 사용자 상태 확인 (탈퇴 여부 체크)
-                Optional<User> userOpt = userService.getUserById(userId);
-
-                if (userOpt.isEmpty() || "DELETED".equals(userOpt.get().getUserStatus())) {
-                    log.warn("탈퇴하거나 존재하지 않는 사용자의 토큰 사용 시도 - userId: {}", userId);
-                    // SecurityContext에 인증 정보를 설정하지 않음 → 인증 실패
-                    filterChain.doFilter(request, response);
-                    return;
-                }
 
                 // Spring Security 인증 객체 생성
                 UsernamePasswordAuthenticationToken authentication =

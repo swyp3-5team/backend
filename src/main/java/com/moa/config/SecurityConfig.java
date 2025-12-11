@@ -54,6 +54,7 @@ public class SecurityConfig {
                     "/swagger-resources/**",
                     // OAuth 로그인/콜백
                     "/auth/kakao/**",
+                    "/auth/apple/**",
                     "/oauth2/**",
                     "/login/**",
                     // 토큰 갱신

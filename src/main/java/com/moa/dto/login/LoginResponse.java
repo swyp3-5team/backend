@@ -1,4 +1,4 @@
-package com.moa.dto;
+package com.moa.dto.login;
 
 import com.moa.entity.User;
 import lombok.AllArgsConstructor;
