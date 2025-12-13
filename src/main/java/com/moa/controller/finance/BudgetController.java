@@ -1,7 +1,8 @@
-package com.moa.controller;
+package com.moa.controller.finance;
 
 
 import com.moa.annotation.CurrentUserId;
+import com.moa.dto.BudgetSuggestionResponse;
 import com.moa.dto.BudgetResponse;
 import com.moa.dto.CreateBudgetRequest;
 import com.moa.dto.UpdateBudgetRequest;
@@ -30,10 +31,10 @@ public class BudgetController {
     public ResponseEntity<BudgetResponse> createBudget(
             @RequestBody CreateBudgetRequest request,
             @CurrentUserId Long userId
-    ){
+    ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(budgetService.createBudget(request,userId));
+                .body(budgetService.createBudget(request, userId));
     }
 
     @Operation(summary = "예산 조회", description = "연-월별 예산 조회")
@@ -41,36 +42,42 @@ public class BudgetController {
     public ResponseEntity<List<BudgetResponse>> getBudgetsByDate(
             @RequestParam LocalDate date,
             @CurrentUserId Long userId
-            ){
+    ) {
         return ResponseEntity.ok(
                 budgetService.getBudgetsByDate(date, userId)
         );
     }
 
-    @Operation(summary = "예산 수정", description = "예산 금액을 수정")
-    @PutMapping
+    @Operation(summary = "예산 수정", description = "예산 금액, 메모 등을 수정")
+    @PatchMapping
     public ResponseEntity<BudgetResponse> updateBudgetAmount(
             @RequestBody UpdateBudgetRequest request,
             @CurrentUserId Long userId
-    ){
+    ) {
         return ResponseEntity.ok(
-                budgetService.updateBudgetAmount(request,userId)
+                budgetService.updateBudgetAmount(request, userId)
         );
     }
-    
+
     @Operation(summary = "예산 비활성화", description = "ID에 해당하는 예산 비활성화")
     @PostMapping("/{budgetId}/deactivate")
     public ResponseEntity<Long> deactivateBudget(
-        @CurrentUserId  Long userId,
-        @PathVariable Long budgetId
-    ){
+            @CurrentUserId Long userId,
+            @PathVariable Long budgetId
+    ) {
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(
-                budgetService.deactivateBudget(userId,budgetId)
+                budgetService.deactivateBudget(userId, budgetId)
         );
     }
 
     @Operation(summary = "자동 예산 설정", description = "예산을 지정해주는 기능")
-    public ResponseEntity getBudgets(){
-        return null;
+    @PostMapping("/auto")
+    public ResponseEntity<List<BudgetSuggestionResponse>> getAutoInitBudgets(
+            @RequestBody List<Long> categoryIds,
+            @CurrentUserId Long userId
+    ) {
+        return ResponseEntity.ok(
+                budgetService.getAutoInitBudgets(categoryIds, userId)
+        );
     }
 }

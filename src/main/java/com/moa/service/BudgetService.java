@@ -1,11 +1,14 @@
 package com.moa.service;
 
 import com.moa.dto.BudgetResponse;
+import com.moa.dto.BudgetSuggestionResponse;
 import com.moa.dto.CreateBudgetRequest;
 import com.moa.dto.UpdateBudgetRequest;
 import com.moa.entity.Budget;
 import com.moa.entity.Category;
 import com.moa.entity.User;
+import com.moa.exception.CategoryNotFoundException;
+import com.moa.exception.UserNotFoundException;
 import com.moa.repository.BudgetRepository;
 import com.moa.repository.CategoryRepository;
 import com.moa.repository.UserRepository;
@@ -15,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -51,7 +55,7 @@ public class BudgetService {
     }
 
     public List<BudgetResponse> getBudgetsByDate(LocalDate date, Long userId) {
-        return budgetRepository.findBudgetsByDate(date,userId)
+        return budgetRepository.findBudgetsByDate(date, userId)
                 .stream()
                 .map(BudgetResponse::from)
                 .toList();
@@ -59,11 +63,17 @@ public class BudgetService {
 
     @Transactional
     public BudgetResponse updateBudgetAmount(UpdateBudgetRequest request, Long userId) {
-        Budget budget = budgetRepository.findByIdAndUser_UserId(request.budgetId(),userId).orElseThrow(
+        Budget budget = budgetRepository.findByIdAndUser_UserId(request.budgetId(), userId).orElseThrow(
                 () -> new IllegalArgumentException("해당 ID의 예산이 존재하지 않습니다.")
         );
 
-        budget.updateAmount(request.amount());
+        if (request.amount() != null) {
+            budget.updateAmount(request.amount());
+        }
+
+        if (request.memo() != null) {
+            budget.updateMemo(request.memo());
+        }
         Budget savedBudget = budgetRepository.save(budget);
 
         return BudgetResponse.from(savedBudget);
@@ -71,13 +81,27 @@ public class BudgetService {
 
     @Transactional
     public Long deactivateBudget(Long userId, Long budgetId) {
-        Budget budget = budgetRepository.findByIdAndUser_UserId(budgetId,userId).orElseThrow(
-                () ->new IllegalArgumentException("존재하지 않는 예산입니다.")
+        Budget budget = budgetRepository.findByIdAndUser_UserId(budgetId, userId).orElseThrow(
+                () -> new IllegalArgumentException("존재하지 않는 예산입니다.")
         );
 
         budget.deactivate();
         Budget savedBudget = budgetRepository.save(budget);
 
         return savedBudget.getId();
+    }
+
+    public List<BudgetSuggestionResponse> getAutoInitBudgets(List<Long> categoryIds, Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new UserNotFoundException("존재하지 않는 유저입니다.")
+        );
+        List<BudgetSuggestionResponse> responses = new ArrayList<>();
+        for (Long categoryId : categoryIds) {
+            if(!categoryRepository.existsById(categoryId)) {
+                continue;
+            }
+            BudgetSuggestionResponse suggestion = new BudgetSuggestionResponse(categoryId,100000L); // 추후 자동 추천 로직으로 변경
+        }
+        return responses;
     }
 }
