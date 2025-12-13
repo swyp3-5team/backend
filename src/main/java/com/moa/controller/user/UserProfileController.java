@@ -1,8 +1,7 @@
-package com.moa.controller;
+package com.moa.controller.user;
 
 import com.moa.annotation.CurrentUserId;
 import com.moa.dto.UserProfileInitRequest;
-import com.moa.dto.UserProfileInitResponse;
 import com.moa.dto.UserProfileResponse;
 import com.moa.service.UserProfileService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -14,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/user-profile")
+@RequestMapping("/api/v1/user-profiles")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "UserProfile", description = "유저 Profile 설정, 조회 API")
@@ -23,14 +22,14 @@ public class UserProfileController {
 
     @PostMapping
     @Operation(summary = "프로필 생성", description = "사용자 정보를 바탕으로 Profile을 생성")
-    public ResponseEntity<UserProfileInitResponse> initProfile(
+    public ResponseEntity<String> initProfile(
         @CurrentUserId Long userId,
         @RequestBody UserProfileInitRequest request
     ){
         userProfileService.initProfile(userId, request);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(new UserProfileInitResponse(true));
+                .body("프로필 생성이 완료되었습니다.");
     }
 
     @GetMapping("/me")

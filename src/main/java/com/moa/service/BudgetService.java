@@ -7,7 +7,6 @@ import com.moa.dto.UpdateBudgetRequest;
 import com.moa.entity.Budget;
 import com.moa.entity.Category;
 import com.moa.entity.User;
-import com.moa.exception.CategoryNotFoundException;
 import com.moa.exception.UserNotFoundException;
 import com.moa.repository.BudgetRepository;
 import com.moa.repository.CategoryRepository;
@@ -36,7 +35,7 @@ public class BudgetService {
                 () -> new IllegalArgumentException("존재하지 않는 유저입니다.")
         );
 
-        Category category = categoryRepository.findById(request.cateGoryId()).orElseThrow(
+        Category category = categoryRepository.findById(request.categoryId()).orElseThrow(
                 () -> new IllegalArgumentException("유효하지 않은 카테고리입니다.")
         );
         LocalDate endDate = request.startDate().plusMonths(1);
