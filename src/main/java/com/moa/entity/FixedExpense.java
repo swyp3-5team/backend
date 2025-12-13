@@ -11,10 +11,10 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 @Entity
 @Table(name = "fixed_expense")
-@Data
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 @Builder
+@Getter
 public class FixedExpense {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -47,6 +47,7 @@ public class FixedExpense {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "USER_ID",
+            nullable = false,
             foreignKey = @ForeignKey(name = "FK_FIXED_EXPENSE_USER")
     )
     private User user;
@@ -54,7 +55,8 @@ public class FixedExpense {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "CATEGORY_ID",
-            foreignKey = @ForeignKey(name = "FK_FIXED_EXPENSE_CATEGORY")
+            nullable = false,
+            foreignKey = @ForeignKey(name = "FK_BUDGET_CATEGORY")
     )
     private Category category;
 }
