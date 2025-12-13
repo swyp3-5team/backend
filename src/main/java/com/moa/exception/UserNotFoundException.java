@@ -2,6 +2,6 @@ package com.moa.exception;
 
 public class UserNotFoundException extends RuntimeException{
     public UserNotFoundException(String message) {
-        super(message);
+        super("User not found");
     }
 }
