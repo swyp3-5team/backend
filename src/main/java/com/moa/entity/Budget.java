@@ -12,10 +12,10 @@ import java.time.LocalDateTime;
 @EntityListeners(AuditingEntityListener.class)
 @Entity
 @Table(name = "budget")
-@Data
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 @Builder
+@Getter
 public class Budget {
 
     @Id
@@ -49,6 +49,7 @@ public class Budget {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "CATEGORY_ID",
+            nullable = false,
             foreignKey = @ForeignKey(name = "FK_BUDGET_CATEGORY")
     )
     private Category category;
@@ -56,6 +57,7 @@ public class Budget {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "USER_ID",
+            nullable = false,
             foreignKey = @ForeignKey(name = "FK_BUDGET_USER")
     )
     private User user;
@@ -66,5 +68,9 @@ public class Budget {
 
     public void deactivate() {
         this.isActive = false;
+    }
+
+    public void updateMemo(String memo) {
+        this.memo = memo;
     }
 }

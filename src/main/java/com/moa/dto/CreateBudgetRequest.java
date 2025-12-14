@@ -13,7 +13,7 @@ public record CreateBudgetRequest(
         String memo,
 
         @Schema(description = "카테고리 ID", example = "3")
-        Long cateGoryId,
+        Long categoryId,
 
         @Schema(description = "시작 날짜", example = "2025-12-07")
         LocalDate startDate

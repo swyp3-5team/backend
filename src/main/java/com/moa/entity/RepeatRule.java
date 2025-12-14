@@ -4,15 +4,19 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.temporal.TemporalAdjusters;
 
 import static java.util.Objects.requireNonNull;
 
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 @Embeddable
+@Getter
 public class RepeatRule {
 
     @Enumerated(EnumType.STRING)
@@ -25,14 +29,10 @@ public class RepeatRule {
     @Column(name = "MONTHLY_DAY")
     private Integer monthlyDay;
 
-    @Column(name = "FIXED_DATE")
-    private LocalDate fixedDate;
-
     private RepeatRule(PaymentType type, DayOfWeek weekly, Integer monthly, LocalDate date) {
         this.paymentType = type;
         this.weeklyDay = weekly;
         this.monthlyDay = monthly;
-        this.fixedDate = date;
         validate();
     }
 
@@ -44,15 +44,38 @@ public class RepeatRule {
         return new RepeatRule(PaymentType.MONTHLY, null, day, null);
     }
 
-    public static RepeatRule fixed(LocalDate date) {
-        return new RepeatRule(PaymentType.FIXED_DATE, null, null, date);
-    }
-
     public void validate() {
         switch (paymentType) {
             case WEEKLY -> requireNonNull(weeklyDay);
             case MONTHLY -> requireNonNull(monthlyDay);
-            case FIXED_DATE -> requireNonNull(fixedDate);
         }
+    }
+
+    public LocalDate calculateNextDate(LocalDate initDate, LocalDate today) {
+        if(today.isBefore(initDate)) {
+            return initDate;
+        }
+
+        return switch (paymentType) {
+            case WEEKLY -> calculateWeekly(today);
+            case MONTHLY -> calculateMonthly(today);
+        };
+    }
+
+    private LocalDate calculateMonthly(LocalDate today) {
+        YearMonth currentYearMonth = YearMonth.from(today);
+
+        LocalDate nextDate = currentYearMonth.atDay(monthlyDay);
+
+        if(nextDate.isBefore(today)) {
+            nextDate = currentYearMonth.plusMonths(1).atDay(monthlyDay);
+        }
+        return nextDate;
+    }
+
+    private LocalDate calculateWeekly(LocalDate today) {
+        LocalDate nextDate = today.with(TemporalAdjusters.nextOrSame(weeklyDay));
+
+        return nextDate;
     }
 }

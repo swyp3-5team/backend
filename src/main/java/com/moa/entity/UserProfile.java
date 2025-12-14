@@ -2,18 +2,19 @@ package com.moa.entity;
 
 import com.moa.dto.UserProfileInitRequest;
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @EntityListeners(AuditingEntityListener.class)
 @Entity
 @Table(name = "user_profile")
-@Data
+@Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserProfile {
 
@@ -25,16 +26,6 @@ public class UserProfile {
     // 유저 정보
     @Column(name = "NICK_NAME", nullable = false, length = 30)
     private String nickname;
-    @Column(name = "BIRTH", nullable = false, length = 30)
-    private LocalDate birthDate;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "GENDER", nullable = false, length = 30)
-    private Gender gender;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "ADDRESS_TYPE", length = 20)
-    private AddressType adressType;
 
     // 수신동의
     @Column(name = "PUSH_ENABLE", nullable = false)
@@ -68,9 +59,6 @@ public class UserProfile {
     private UserProfile(User user, UserProfileInitRequest request) {
         this.user = user;
         this.nickname = request.nickname();
-        this.birthDate = request.birthDate();
-        this.gender = request.gender();
-        this.adressType = request.addressType();
         this.pushEnable = Boolean.TRUE.equals(request.pushEnable());
         this.marketingEnable = Boolean.TRUE.equals(request.marketingEnable());
         this.voiceEnable = Boolean.TRUE.equals(request.voiceEnable());

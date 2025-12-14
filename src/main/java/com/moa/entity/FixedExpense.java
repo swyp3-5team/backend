@@ -6,15 +6,16 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @EntityListeners(AuditingEntityListener.class)
 @Entity
 @Table(name = "fixed_expense")
-@Data
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = lombok.AccessLevel.PRIVATE)
 @Builder
+@Getter
 public class FixedExpense {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,6 +30,9 @@ public class FixedExpense {
 
     @Column(name = "MEMO")
     private String memo;
+
+    @Column(name = "INIT_DATE")
+    private LocalDate initDate;
 
     @Column(name = "IS_ACTIVE")
     private boolean isActive;
@@ -47,6 +51,7 @@ public class FixedExpense {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "USER_ID",
+            nullable = false,
             foreignKey = @ForeignKey(name = "FK_FIXED_EXPENSE_USER")
     )
     private User user;
@@ -54,7 +59,12 @@ public class FixedExpense {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "CATEGORY_ID",
-            foreignKey = @ForeignKey(name = "FK_FIXED_EXPENSE_CATEGORY")
+            nullable = false,
+            foreignKey = @ForeignKey(name = "FK_BUDGET_CATEGORY")
     )
     private Category category;
+
+    public LocalDate nextPaymentDate(LocalDate today) {
+        return repeatRule.calculateNextDate(initDate, today);
+    }
 }
