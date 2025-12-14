@@ -9,10 +9,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -31,7 +30,15 @@ public class FixedExpenseController {
         return ResponseEntity
                 .ok()
                 .body(fixedExpenseService.createFixedExpense(userId, request));
-    }
+    };
 
-    ;
+    @Operation(summary = "고정 지출 조회", description = "오늘 기준 고정 지출 & 다음 결제일 조회")
+    @GetMapping
+    public ResponseEntity<List<FixedExpenseResponse>> getFixedExpenses(
+            @CurrentUserId Long userId
+    ) {
+        return ResponseEntity
+                .ok()
+                .body(fixedExpenseService.getFixedExpenses(userId));
+    };
 }
