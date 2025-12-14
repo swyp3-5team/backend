@@ -11,5 +11,5 @@ import java.util.List;
 public interface FixedExpenseRepository extends JpaRepository<FixedExpense,Long> {
     List<FixedExpense> user(User user);
 
-    List<FixedExpense> findByUserIdAndIsActiveTrue(Long userId);
+    List<FixedExpense> findByUser_UserIdAndIsActiveTrue(Long userId);
 }

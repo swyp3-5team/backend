@@ -37,7 +37,7 @@ public class FixedExpenseService {
         if (paymentType == PaymentType.WEEKLY) {
             repeatRule = RepeatRule.weekly(request.initDate().getDayOfWeek());
         } else {
-            repeatRule = RepeatRule.monthly(request.initDate().getMonthValue());
+            repeatRule = RepeatRule.monthly(request.initDate().getDayOfMonth());
         }
         FixedExpense fixedExpense = FixedExpense
                 .builder()
@@ -59,7 +59,7 @@ public class FixedExpenseService {
     }
 
     public List<FixedExpenseResponse> getFixedExpenses(Long userId) {
-        List<FixedExpense> fixedExpenses = fixedExpenseRepository.findByUserIdAndIsActiveTrue(userId);
+        List<FixedExpense> fixedExpenses = fixedExpenseRepository.findByUser_UserIdAndIsActiveTrue(userId);
 
         return fixedExpenses.stream()
                 .map(fixedExpense -> FixedExpenseResponse.from(fixedExpense, fixedExpense.nextPaymentDate(LocalDate.now())))
