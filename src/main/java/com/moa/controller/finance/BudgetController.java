@@ -2,10 +2,7 @@ package com.moa.controller.finance;
 
 
 import com.moa.annotation.CurrentUserId;
-import com.moa.dto.BudgetSuggestionResponse;
-import com.moa.dto.BudgetResponse;
-import com.moa.dto.CreateBudgetRequest;
-import com.moa.dto.UpdateBudgetRequest;
+import com.moa.dto.*;
 import com.moa.service.BudgetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -73,11 +70,11 @@ public class BudgetController {
     @Operation(summary = "자동 예산 설정", description = "예산을 지정해주는 기능")
     @PostMapping("/auto")
     public ResponseEntity<List<BudgetSuggestionResponse>> getAutoInitBudgets(
-            @RequestBody List<Long> categoryIds,
+            @RequestBody AutoInitRequest categoryIds,
             @CurrentUserId Long userId
     ) {
         return ResponseEntity.ok(
-                budgetService.getAutoInitBudgets(categoryIds, userId)
+                budgetService.getAutoInitBudgets(categoryIds.categoryIds(), userId)
         );
     }
 }

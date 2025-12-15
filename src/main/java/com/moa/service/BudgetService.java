@@ -7,6 +7,7 @@ import com.moa.dto.UpdateBudgetRequest;
 import com.moa.entity.Budget;
 import com.moa.entity.Category;
 import com.moa.entity.User;
+import com.moa.exception.CategoryNotFoundException;
 import com.moa.exception.UserNotFoundException;
 import com.moa.repository.BudgetRepository;
 import com.moa.repository.CategoryRepository;
@@ -96,10 +97,10 @@ public class BudgetService {
         );
         List<BudgetSuggestionResponse> responses = new ArrayList<>();
         for (Long categoryId : categoryIds) {
-            if(!categoryRepository.existsById(categoryId)) {
-                continue;
-            }
-            BudgetSuggestionResponse suggestion = new BudgetSuggestionResponse(categoryId,100000L); // 추후 자동 추천 로직으로 변경
+            Category category = categoryRepository.findById(categoryId).orElseThrow(CategoryNotFoundException::new);
+
+            BudgetSuggestionResponse suggestion = new BudgetSuggestionResponse(category.getId(),category.getName(),100000L); // 추후 자동 추천 로직으로 변경
+            responses.add(suggestion);
         }
         return responses;
     }
