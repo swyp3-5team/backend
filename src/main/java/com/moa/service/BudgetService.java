@@ -94,7 +94,7 @@ public class BudgetService {
     public List<BudgetSuggestionResponse> getAutoInitBudgets(List<Long> categoryIds, Long userId) {
         User user = userRepository.findById(userId).orElseThrow(
                 () -> new UserNotFoundException("존재하지 않는 유저입니다.")
-        );
+        ); // 추후 LLM 기능 사용할 경우 유저가 아니면 사용불가능하도록 하기 위함
         List<BudgetSuggestionResponse> responses = new ArrayList<>();
         for (Long categoryId : categoryIds) {
             Category category = categoryRepository.findById(categoryId).orElseThrow(CategoryNotFoundException::new);
