@@ -13,4 +13,5 @@ import lombok.NoArgsConstructor;
 public class ChatRequest {
 
     private String message;
+    private String mode;
 }

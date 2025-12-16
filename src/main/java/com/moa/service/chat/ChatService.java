@@ -5,6 +5,7 @@ import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ChatResponse;
 import com.moa.dto.chat.clova.ClovaStudioRequest;
 import com.moa.entity.AiChattingLog;
+import com.moa.entity.ChatModeType;
 import com.moa.entity.User;
 import com.moa.repository.AiChattingLogRepository;
 import com.moa.repository.UserRepository;
@@ -18,7 +19,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -40,7 +40,7 @@ public class ChatService {
     private final ClovaStudioConfig clovaConfig;
 
     @Transactional
-    public ChatResponse sendMessage(Long userId, String userMessage) {
+    public ChatResponse sendMessage(Long userId, String userMessage, String mode) {
         try {
             // 1. 사용자 확인
             User user = userRepository.findById(userId)
@@ -85,10 +85,18 @@ public class ChatService {
             // 6. 메시지 리스트 구성
             List<ClovaStudioRequest.Message> messages = new ArrayList<>();
 
+            String systemPrompt = clovaConfig.getSystemPrompt();
+            if(mode.equals(ChatModeType.CHAT.getText())) {
+                // 대화 모드는 그대로...
+            } else if(mode.equals(ChatModeType.RECEIPT.getText())) {
+                // 내역 모드는 Json 형식 반환
+                systemPrompt = clovaConfig.getSystemPrompt() + clovaConfig.getJsonPrompt();
+            }
+
             // 시스템 프롬프트 추가
             messages.add(ClovaStudioRequest.Message.builder()
                     .role("system")
-                    .content(ragContext != null ? ragContext.toString() + clovaConfig.getSystemPrompt() : clovaConfig.getSystemPrompt())
+                    .content(ragContext != null ? ragContext.toString() + systemPrompt : systemPrompt)
                     .build());
 
             // 현재 사용자 메시지 추가
@@ -104,7 +112,8 @@ public class ChatService {
             String aiResponse = clovaStudioService.sendMessage(messages);
 
             // 8. JSON 파싱 (거래내역 추출)
-            ChatResponse.TransactionInfo transactionInfo = extractTransactionInfo(aiResponse);
+            ChatResponse cleanChatResponse = extractTransactionInfo(aiResponse);
+            ChatResponse.TransactionInfo transactionInfo = cleanChatResponse != null ? cleanChatResponse.getTransactionInfo() : null;
 
             // 9. AI 응답 임베딩 벡터 생성 및 저장
             List<Double> aiEmbedding = clovaStudioService.embedText(aiResponse);
@@ -123,9 +132,8 @@ public class ChatService {
                     assistantLog.getChattingId(), transactionInfo != null ? "있음" : "없음");
 
             return ChatResponse.builder()
-                    .message(aiResponse)
+                    .message(cleanChatResponse == null ? aiResponse : cleanChatResponse.getMessage())
                     .transactionInfo(transactionInfo)
-                    .timestamp(LocalDateTime.now())
                     .build();
 
         } catch (Exception e) {
@@ -134,20 +142,31 @@ public class ChatService {
         }
     }
 
-    private ChatResponse.TransactionInfo extractTransactionInfo(String aiResponse) {
+    private ChatResponse extractTransactionInfo(String aiResponse) {
+        int beginIdx = -1;
+        String upperAiResponse = aiResponse.toUpperCase();
         try {
-            // "JSON_{...}" 패턴 찾기
-            int jsonStart = aiResponse.indexOf("JSON_{");
+            // "[JSON={...}]" 패턴 찾기
+            int jsonStart = upperAiResponse.indexOf("[JSON={");
             if (jsonStart == -1) {
-                return null; // JSON 없음
+                jsonStart = upperAiResponse.indexOf("[JSON");
+                if(jsonStart == -1) {
+                    return null; // JSON 없음
+                } else {
+                    beginIdx = "[JSON".length();
+                }
+            } else {
+                beginIdx = "[JSON={".length();
             }
 
-            int jsonEnd = aiResponse.indexOf("}", jsonStart);
+            int jsonEnd = upperAiResponse.indexOf("}", jsonStart);
             if (jsonEnd == -1) {
                 return null;
             }
 
-            String jsonString = aiResponse.substring(jsonStart + 6, jsonEnd); // "JSON_{" 제외
+            String cleanMessage = aiResponse.substring(0, jsonStart).trim();
+
+            String jsonString = aiResponse.substring(jsonStart + beginIdx, jsonEnd);
 
             // 간단한 파싱 (정규식 사용)
             String pattern = extractField(jsonString, "Pattern");
@@ -156,19 +175,17 @@ public class ChatService {
             String payment = extractField(jsonString, "Payment");
             String emotion = extractField(jsonString, "Emotion");
 
-            if (pattern == null || content == null || pay == null) {
-                log.warn("JSON 파싱 실패 - 필수 필드 누락");
-                return null; // 필수 필드 없음
-            }
-
-            log.info("거래내역 추출 성공 - Pattern: {}, Pay: {}", pattern, pay);
-
-            return ChatResponse.TransactionInfo.builder()
+            ChatResponse.TransactionInfo transactionInfo = ChatResponse.TransactionInfo.builder()
                     .pattern(pattern)
                     .content(content)
                     .pay(pay)
                     .payment(payment)
                     .emotion(emotion)
+                    .build();
+
+            return ChatResponse.builder()
+                    .message(cleanMessage)
+                    .transactionInfo(transactionInfo)
                     .build();
 
         } catch (Exception e) {
@@ -178,12 +195,25 @@ public class ChatService {
     }
 
     private String extractField(String json, String fieldName) {
-        Pattern pattern = Pattern.compile("\"" + fieldName + "\"\\s*:\\s*\"([^\"]+)\"");
-        Matcher matcher = pattern.matcher(json);
-        if (matcher.find()) {
-            return matcher.group(1);
+        // 1차 시도: 따옴표 있는 값 추출 - "Pattern": "지출"
+        Pattern quotedPattern = Pattern.compile("\"" + fieldName + "\"\\s*:\\s*\"([^\"]*)\"");
+        Matcher quotedMatcher = quotedPattern.matcher(json);
+        if (quotedMatcher.find()) {
+            return patternText(quotedMatcher.group(1));
         }
+
+        // 2차 시도: 따옴표 없는 값 추출 - "Pattern": 지출
+        Pattern unquotedPattern = Pattern.compile("\"" + fieldName + "\"\\s*:\\s*([^,}\\s]+)");
+        Matcher unquotedMatcher = unquotedPattern.matcher(json);
+        if (unquotedMatcher.find()) {
+            return patternText(unquotedMatcher.group(1).trim());
+        }
+
         return null;
+    }
+
+    private String patternText(String value) {
+        return value.isEmpty() || "null".equals(value) ? null : value;  // 빈 문자열/null 은 null 반환
     }
 
     public List<ChatHistoryResponse> getChatHistory(Long userId, int page, int size) {

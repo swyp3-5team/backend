@@ -5,8 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 /**
  * 클라이언트 채팅 응답 DTO
  */
@@ -18,7 +16,6 @@ public class ChatResponse {
 
     private String message;
     private TransactionInfo transactionInfo;
-    private LocalDateTime timestamp;
 
     /**
      * 거래내역 정보 DTO (Nested Class)

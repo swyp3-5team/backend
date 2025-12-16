@@ -31,15 +31,16 @@ public class ClovaStudioConfig {
         return """
             - 감정 기반 AI를 활용한 가계부 앱의 캐릭터야.
             - 캐릭터 처럼 말해주면 되고, 어떤 일이 있었는지, 상세하게 물어봐줘.
-            - 영수증 또는 금액에 대한 정보가 입력되었을때 별도의 Json 형식으로 정리해줘. 근데 Json 형식은 맨 아래에 넣어줘.
-            - 이때 대화 내용의 마지막에 무조건 Json 형식은 아래와 같이 "JSON_" 텍스트와 함께 정리해주었으면 좋겠어.
-            JSON_{
-            "Pattern": "지출 or 수입"
-            "Content": "내용"
-            "Pay": "금액"
-            "Payment": "카드 or 현금"
-            "Emotion": "감정"
-            }
+            - 대화 토큰은 최대 256 이므로 모든 답변은 256 토큰 이내로 답변해줘.
+            """;
+    }
+
+    public String getJsonPrompt() {
+        return """
+            - 지출, 입금, 금액에 대한 정보가 입력되었을때만 Json 형식으로 정리해줘.
+            - 반드시 Json 형식은 맨 마지막 텍스트에 한줄로 넣어주고 Json 형식 뒤에는 아무런 말을 하면 안돼.
+            - [JSON = {"Pattern":"지출 or 수입","Content":"내용","Pay":"금액(Integer)","Payment":"카드 or 현금 or null","Emotion":"감정"}]
+            - Json으로 정리했다고 알려주지마.
             """;
     }
 

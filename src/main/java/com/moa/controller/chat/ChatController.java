@@ -4,6 +4,7 @@ import com.moa.annotation.CurrentUserId;
 import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ChatRequest;
 import com.moa.dto.chat.ChatResponse;
+import com.moa.entity.ChatModeType;
 import com.moa.service.chat.ChatService;
 
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,13 +32,19 @@ public class ChatController {
     private final ChatService chatService;
 
     @PostMapping("/send")
-    @Operation(summary = "AI 챗봇에게 메시지 전송", description = "사용자 메시지를 보내고 AI 응답을 받습니다. 거래내역이 포함된 경우 JSON 형식으로 파싱됩니다.")
+    @Operation(summary = "AI 챗봇에게 메시지 전송", description = "message : 사용자 메시지 / mode : 챗봇 모드 (내역모드-RECEIPT ,대화모드-CHAT)")
     public ResponseEntity<ChatResponse> sendMessage(
             @CurrentUserId Long userId,
             @RequestBody ChatRequest request) {
+        String mode = request.getMode();
+        if(mode == null || mode.isEmpty() || !(ChatModeType.RECEIPT.getText().equals(mode) || ChatModeType.CHAT.getText().equals(mode))) {
+            String message = "mode는 'RECEIPT' 또는 'CHAT'이어야 합니다.";
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ChatResponse.builder().message(message).build());
+        }
         try {
             log.info("사용자 {} 메시지 전송 요청: {}", userId, request.getMessage());
-            ChatResponse response = chatService.sendMessage(userId, request.getMessage());
+            ChatResponse response = chatService.sendMessage(userId, request.getMessage(), request.getMode());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             log.error("메시지 전송 실패: {}", e.getMessage(), e);
