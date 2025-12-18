@@ -1,10 +1,10 @@
 package com.moa.dto;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 public record TransactionCreateRequest(
     Long amount,
-    LocalDateTime transactionDate,
+    LocalDate transactionDate,
     String place,
     String paymentMemo,
     Long categoryId,

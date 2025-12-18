@@ -1,13 +1,13 @@
 package com.moa.dto;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 public record TransactionUpdateRequest(
         Long amount,
         String emotion,
         String transactionMemo,
         String place,
-        LocalDateTime transactionDate,
+        LocalDate transactionDate,
         Long categoryId
 ) {
 }
