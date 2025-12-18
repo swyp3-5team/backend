@@ -1,5 +1,6 @@
 package com.moa.entity;
 
+import com.moa.dto.UpdateBudgetRequest;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -62,15 +63,13 @@ public class Budget {
     )
     private User user;
 
-    public void updateAmount(Long amount) {
-        this.amount = amount;
-    }
 
     public void deactivate() {
         this.isActive = false;
     }
 
-    public void updateMemo(String memo) {
-        this.memo = memo;
+    public void update(UpdateBudgetRequest request) {
+        this.memo = request.memo();
+        this.amount = request.amount();
     }
 }

@@ -62,18 +62,12 @@ public class BudgetService {
     }
 
     @Transactional
-    public BudgetResponse updateBudgetAmount(UpdateBudgetRequest request, Long userId) {
-        Budget budget = budgetRepository.findByIdAndUser_UserId(request.budgetId(), userId).orElseThrow(
+    public BudgetResponse updateBudgetAmount(UpdateBudgetRequest request, Long userId, Long budgetId) {
+        Budget budget = budgetRepository.findByIdAndUser_UserId(budgetId, userId).orElseThrow(
                 () -> new IllegalArgumentException("해당 ID의 예산이 존재하지 않습니다.")
         );
 
-        if (request.amount() != null) {
-            budget.updateAmount(request.amount());
-        }
-
-        if (request.memo() != null) {
-            budget.updateMemo(request.memo());
-        }
+        budget.update(request);
         Budget savedBudget = budgetRepository.save(budget);
 
         return BudgetResponse.from(savedBudget);
