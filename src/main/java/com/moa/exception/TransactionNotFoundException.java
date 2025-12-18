@@ -1,0 +1,7 @@
+package com.moa.exception;
+
+public class TransactionNotFoundException extends RuntimeException {
+    public TransactionNotFoundException(String s) {
+        super(s);
+    }
+}

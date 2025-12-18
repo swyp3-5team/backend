@@ -1,7 +1,10 @@
 package com.moa.entity;
 
+import com.moa.dto.TransactionUpdateRequest;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -13,6 +16,8 @@ import java.time.LocalDateTime;
 @Table(name = "transactions")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = lombok.AccessLevel.PRIVATE)
+@SQLDelete(sql = "UPDATE transactions SET is_deleted = true WHERE transaction_id = ?")
+@SQLRestriction("is_deleted = false")
 @Builder
 @Getter
 public class Transaction {
@@ -37,6 +42,9 @@ public class Transaction {
     @Enumerated(EnumType.STRING)
     private TransactionEmotion emotion;
 
+    @Column(name = "IS_DELETED")
+    private boolean isDeleted = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "CATEGORY_ID",
@@ -60,4 +68,13 @@ public class Transaction {
     @Column(name = "UPDATED_AT")
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    public void update(TransactionUpdateRequest request, Category category) {
+        this.amount = request.amount();
+        this.emotion = TransactionEmotion.from(request.emotion());
+        this.transactionDate = request.transactionDate();
+        this.place = request.place();
+        this.category = category;
+        this.place = request.place();
+    }
 }
