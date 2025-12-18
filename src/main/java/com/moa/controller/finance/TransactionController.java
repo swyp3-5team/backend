@@ -34,14 +34,25 @@ public class TransactionController {
         );
     };
 
-    @Operation(summary = "지출 기록 조회", description = "지출 기록을 조회하는 API")
+    @Operation(summary = "지출 기록 연-월 조회", description = "지출 기록을 연-월 기준으로 조회하는 API")
     @GetMapping
-    public ResponseEntity<List<TransactionResponse>> getTransactions(
+    public ResponseEntity<List<TransactionResponse>> getTransactionsByYearMonth(
             @CurrentUserId Long userId,
             @RequestParam YearMonth yearMonth
     ){
         return ResponseEntity.ok().body(
-                transactionService.getTransactions(userId,yearMonth)
+                transactionService.getTransactionsByYearMonth(userId,yearMonth)
+        );
+    }
+
+    @Operation(summary = "지출 기록 단일 조회", description = "지출 기록을 ID 기준으로 조회하는 API")
+    @GetMapping("/{transactionId}")
+    public ResponseEntity<TransactionResponse> getTransactionsByYearMonth(
+            @CurrentUserId Long userId,
+            @PathVariable Long transactionId
+    ){
+        return ResponseEntity.ok().body(
+                transactionService.getTransaction(userId,transactionId)
         );
     }
 

@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.List;
@@ -57,9 +57,9 @@ public class TransactionService {
     }
 
     @Transactional(readOnly=true)
-    public List<TransactionResponse> getTransactions(Long userId, YearMonth yearMonth) {
-        LocalDateTime start = yearMonth.atDay(1).atStartOfDay();
-        LocalDateTime end = yearMonth.atEndOfMonth().atTime(LocalTime.MAX);
+    public List<TransactionResponse> getTransactionsByYearMonth(Long userId, YearMonth yearMonth) {
+        LocalDate start = yearMonth.atDay(1).atStartOfDay().toLocalDate();
+        LocalDate end = yearMonth.atEndOfMonth().atTime(LocalTime.MAX).toLocalDate();
 
         List<Transaction> transactionList = transactionRepository.findByUser_UserIdAndTransactionDateBetween(userId, start, end);
 
@@ -79,5 +79,13 @@ public class TransactionService {
         Transaction updatedTransaction = transactionRepository.save(transaction);
 
         return TransactionResponse.from(updatedTransaction);
+    }
+
+    public TransactionResponse getTransaction(Long userId, Long transactionId) {
+        Transaction transaction = transactionRepository.findByUser_UserIdAndId(userId,transactionId).orElseThrow(
+                () -> new TransactionNotFoundException("존재하지 않는 지출 기록입니다.")
+        );
+
+        return TransactionResponse.from(transaction);
     }
 }
