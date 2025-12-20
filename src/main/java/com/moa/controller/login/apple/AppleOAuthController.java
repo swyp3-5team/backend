@@ -2,6 +2,7 @@ package com.moa.controller.login.apple;
 
 import com.moa.annotation.CurrentUserId;
 import com.moa.config.login.apple.AppleOAuthConfig;
+import com.moa.dto.login.IdTokenRequest;
 import com.moa.dto.login.LoginResponse;
 import com.moa.dto.login.apple.AppleTokenResponse;
 import com.moa.dto.login.apple.AppleUserInfo;
@@ -58,10 +59,11 @@ public class AppleOAuthController {
 
     @PostMapping("/callback")
     @Operation(summary = "애플 OAuth 콜백", description = "애플 로그인 후 리다이렉트되는 콜백 엔드포인트입니다.")
-    public ResponseEntity<LoginResponse> callback(
-            @RequestParam(value = "code", required = false) String code,
-            @RequestParam(value = "deviceId", required = false) String deviceId) {
+    public ResponseEntity<LoginResponse> callback(@RequestBody IdTokenRequest request) {
         try {
+            String code = request.getIdToken();
+            String deviceId = request.getDeviceId();
+
             log.info("애플 콜백 수신 - Authorization Code: {}, user: {}", code);
 
             if (code == null) {
