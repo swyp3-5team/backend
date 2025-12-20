@@ -205,7 +205,7 @@ public class KakaoOAuthController {
             providerService.deleteAllProvidersByUserId(userId);
 
             // 5. 사용자 Soft Delete (JWT는 서버에 저장하지 않음)
-            userService.deleteUser(userId);
+            userService.hardDeleteUser(userId);
 
             log.info("카카오 회원 탈퇴 완료 - userId: {}", userId);
 

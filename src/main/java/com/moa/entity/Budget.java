@@ -2,6 +2,9 @@ package com.moa.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -60,6 +63,7 @@ public class Budget {
             nullable = false,
             foreignKey = @ForeignKey(name = "FK_BUDGET_USER")
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
     public void updateAmount(Long amount) {

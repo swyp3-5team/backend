@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.hibernate.annotations.Type;
 
 import com.moa.config.chat.VectorType;
@@ -35,6 +37,7 @@ public class AiChattingLog {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "USER_ID", nullable = false, foreignKey = @ForeignKey(name = "FK_AI_CHATTING_USER"))
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
     @Column(name = "CHAT_CONTENT", nullable = false, columnDefinition = "TEXT")

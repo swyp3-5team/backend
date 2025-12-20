@@ -194,7 +194,7 @@ public class AppleOAuthController {
             providerService.deleteAllProvidersByUserId(userId);
 
             // 5. 사용자 Soft Delete
-            userService.deleteUser(userId);
+            userService.hardDeleteUser(userId);
 
             log.info("애플 회원 탈퇴 완료 - userId: {}", userId);
 

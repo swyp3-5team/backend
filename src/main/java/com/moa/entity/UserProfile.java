@@ -5,6 +5,9 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -54,6 +57,7 @@ public class UserProfile {
             nullable = false,
             foreignKey = @ForeignKey(name = "FK_USERPROFILE_USER")
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
     private UserProfile(User user, UserProfileInitRequest request) {
