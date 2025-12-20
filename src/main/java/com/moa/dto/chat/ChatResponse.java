@@ -1,5 +1,7 @@
 package com.moa.dto.chat;
 
+import java.time.LocalDate;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,8 +30,21 @@ public class ChatResponse {
     public static class TransactionInfo {
         private String pattern;
         private String content;
-        private String pay;
+        private Long amount;
         private String payment;
+        private String place;
+        private String categoryId;
+        private String category;
         private String emotion;
+        private LocalDate transactionDate;
+
+        public static Long parseAmount(String amount) {
+            if (amount == null || amount.trim().isEmpty()) {
+                return null;
+            }
+
+            String cleanedAmount = amount.replaceAll("[^0-9]", "");
+            return Long.parseLong(cleanedAmount);
+        }
     }
 }
