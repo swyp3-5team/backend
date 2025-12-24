@@ -1,11 +1,14 @@
 package com.moa.dto.chat;
 
-import java.time.LocalDate;
-
+import com.moa.entity.PaymentMethod;
+import com.moa.entity.TransactionEmotion;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
+import java.util.List;
 
 /**
  * 클라이언트 채팅 응답 DTO
@@ -28,15 +31,29 @@ public class ChatResponse {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class TransactionInfo {
-        private String pattern;
-        private String content;
-        private Long amount;
-        private String payment;
-        private String place;
-        private String categoryId;
+        private Long amount; // 금액
+        private Long categoryId;
         private String category;
-        private String emotion;
+        /** 지출/입금 */
+        private String pattern;
+
+        /** 내용 */
+        private String content;
+
+        /** 결제일 */
         private LocalDate transactionDate;
+
+        /** 결제처 */
+        private String place;
+
+        /** 결제 수단(ex. 현금, 카드, 계좌 이제 등) */
+        private PaymentMethod paymentMethod;
+
+        /** 감정 */
+        private TransactionEmotion emotion;
+
+        /** 영수증 품목 목록 */
+        private List<TransactionInfo> items;
 
         public static Long parseAmount(String amount) {
             if (amount == null || amount.trim().isEmpty()) {

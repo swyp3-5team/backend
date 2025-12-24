@@ -1,5 +1,6 @@
 package com.moa.entity;
 
+import com.moa.dto.UpdateBudgetRequest;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -66,15 +67,13 @@ public class Budget {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
-    public void updateAmount(Long amount) {
-        this.amount = amount;
-    }
 
     public void deactivate() {
         this.isActive = false;
     }
 
-    public void updateMemo(String memo) {
-        this.memo = memo;
+    public void update(UpdateBudgetRequest request) {
+        if(request.memo() != null) this.memo = request.memo();
+        if(request.amount() != null) this.amount = request.amount();
     }
 }

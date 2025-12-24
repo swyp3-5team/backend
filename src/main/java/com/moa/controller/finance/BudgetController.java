@@ -46,13 +46,14 @@ public class BudgetController {
     }
 
     @Operation(summary = "예산 수정", description = "예산 금액, 메모 등을 수정")
-    @PatchMapping
+    @PutMapping("/{budgetId}")
     public ResponseEntity<BudgetResponse> updateBudgetAmount(
             @RequestBody UpdateBudgetRequest request,
+            @PathVariable Long budgetId,
             @CurrentUserId Long userId
     ) {
         return ResponseEntity.ok(
-                budgetService.updateBudgetAmount(request, userId)
+                budgetService.updateBudgetAmount(request, userId,budgetId)
         );
     }
 

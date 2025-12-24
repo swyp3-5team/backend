@@ -2,14 +2,10 @@ package com.moa.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @EntityListeners(AuditingEntityListener.class)
@@ -25,24 +21,14 @@ public class Transaction {
     @Column(name = "TRANSACTION_ID")
     private Long id;
 
+    @Column(name = "NAME")
+    private String name;
+
     @Column(name = "AMOUNT", nullable = false)
     private Long amount;
 
-    @Column(name = "TRANSACTION_DATE", nullable = false)
-    private LocalDate transactionDate;
-
-    @Column(name = "PLACE")
-    private String place;
-
-    @Column(name = "PAYMENT")
-    private String payment;
-
-    @Column(name = "PAYMENT_MEMO")
-    private String paymentMemo;
-
-    @Column(name = "EMOTION", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private TransactionEmotion emotion;
+    @Column(name = "IS_DELETED")
+    private boolean isDeleted = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
@@ -54,12 +40,11 @@ public class Transaction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "USER_ID",
+            name = "TRANSACTION_GROUP_ID",
             nullable = false,
-            foreignKey = @ForeignKey(name = "FK_TRANSACTION_USER")
+            foreignKey = @ForeignKey(name = "FK_TRANSACTION_GROUP_TRANSACTION")
     )
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    private User user;
+    private TransactionGroup transactionGroup;
 
     @Column(name = "CREATED_AT")
     @CreatedDate
@@ -69,28 +54,9 @@ public class Transaction {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    public void update(Long amount, LocalDate transactionDate, String place,
-                      String payment, String paymentMemo, TransactionEmotion emotion, Category category) {
-        if (amount != null) {
-            this.amount = amount;
-        }
-        if (transactionDate != null) {
-            this.transactionDate = transactionDate;
-        }
-        if (place != null) {
-            this.place = place;
-        }
-        if (payment != null) {
-            this.payment = payment;
-        }
-        if (paymentMemo != null) {
-            this.paymentMemo = paymentMemo;
-        }
-        if (emotion != null) {
-            this.emotion = emotion;
-        }
-        if (category != null) {
-            this.category = category;
-        }
+    public void update(String name, Long amount, Category category) {
+        this.name = name;
+        this.amount = amount;
+        this.category = category;
     }
 }

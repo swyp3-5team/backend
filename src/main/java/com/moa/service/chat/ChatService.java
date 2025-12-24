@@ -5,11 +5,7 @@ import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ChatResponse;
 import com.moa.dto.chat.ChatResponse.TransactionInfo;
 import com.moa.dto.chat.clova.ClovaStudioRequest;
-import com.moa.entity.AiChattingLog;
-import com.moa.entity.CharacterEmotionType;
-import com.moa.entity.ChatModeType;
-import com.moa.entity.GreetingByTimeType;
-import com.moa.entity.User;
+import com.moa.entity.*;
 import com.moa.exception.InvalidImageException;
 import com.moa.repository.AiChattingLogRepository;
 import com.moa.repository.UserRepository;
@@ -127,7 +123,7 @@ public class ChatService {
                     .user(user)
                     .chatContent(aiResponse)
                     .chatType("ASSISTANT")
-                    .emotion(transactionInfo != null ? transactionInfo.getEmotion() : null)
+                    .emotion(transactionInfo != null ? transactionInfo.getEmotion().name() : null)
                     .embeddingVector(aiEmbeddingVectorStr)
                     .build();
             assistantLog = chattingLogRepository.save(assistantLog);
@@ -185,8 +181,8 @@ public class ChatService {
                     .pattern(pattern)
                     .content(content)
                     .amount(TransactionInfo.parseAmount(amount))
-                    .payment(payment)
-                    .emotion(emotion)
+                    .paymentMethod(PaymentMethod.from(payment))
+                    .emotion(TransactionEmotion.valueOf(emotion))
                     .category(category)
                     .place(place)
                     .transactionDate(transactionDateStr != null ? LocalDate.parse(transactionDateStr) : null)

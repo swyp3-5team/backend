@@ -42,6 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // 토큰에서 사용자 ID 추출
                 Long userId = jwtTokenProvider.getUserIdFromToken(jwt);
                 String deviceId = jwtTokenProvider.getDeviceIdFromToken(jwt);
+                log.info("로그인 사용자 -  userId: {}, deviceId: {}", userId, deviceId);
 
                 // Spring Security 인증 객체 생성
                 UsernamePasswordAuthenticationToken authentication =
