@@ -1,4 +1,4 @@
-package com.moa.dto.login.kakao;
+package com.moa.dto.login;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class KakaoIdTokenRequest {
+public class IdTokenRequest {
     /**
      * 카카오 SDK에서 발급받은 ID Token
      */

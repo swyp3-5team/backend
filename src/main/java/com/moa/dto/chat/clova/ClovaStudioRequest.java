@@ -26,15 +26,30 @@ public class ClovaStudioRequest {
     private List<String> stopBefore;
     private Boolean includeAiFilters;
 
-    /**
-     * 메시지 DTO (Nested Class)
-     */
     @Data
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
     public static class Message {
         private String role;
-        private String content;
+        private Object content;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MessageContentPart {
+        private String type;
+        private String text;
+        private ImageData dataUri;
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ImageData {
+        private String data;
     }
 }

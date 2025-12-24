@@ -49,6 +49,11 @@ public class ClovaStudioService {
                     && response.getResult().getMessage() != null) {
                 String content = response.getResult().getMessage().getContent();
                 log.info("Clova Studio API 호출 성공 - 응답 길이: {} 자", content.length());
+                
+                // 응답에서 쓸모없는 문자 제거
+                if(content != null) {
+                    content = content.replaceAll("`", "");
+                }
                 return content;
             }
 

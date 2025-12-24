@@ -3,7 +3,7 @@ package com.moa.controller.login.kakao;
 import com.moa.annotation.CurrentUserId;
 import com.moa.config.login.kakao.KakaoOAuthConfig;
 import com.moa.dto.login.LoginResponse;
-import com.moa.dto.login.kakao.KakaoIdTokenRequest;
+import com.moa.dto.login.IdTokenRequest;
 import com.moa.dto.login.kakao.KakaoTokenResponse;
 import com.moa.dto.login.kakao.KakaoUserInfo;
 import com.moa.entity.Provider;
@@ -205,7 +205,7 @@ public class KakaoOAuthController {
             providerService.deleteAllProvidersByUserId(userId);
 
             // 5. 사용자 Soft Delete (JWT는 서버에 저장하지 않음)
-            userService.deleteUser(userId);
+            userService.hardDeleteUser(userId);
 
             log.info("카카오 회원 탈퇴 완료 - userId: {}", userId);
 
@@ -254,7 +254,7 @@ public class KakaoOAuthController {
     @PostMapping("/token")
     @Operation(summary = "카카오 OIDC 로그인 (앱 전용)",
                description = "앱에서 발급받은 ID Token으로 로그인합니다.")
-    public ResponseEntity<LoginResponse> loginWithIdToken(@RequestBody KakaoIdTokenRequest request) {
+    public ResponseEntity<LoginResponse> loginWithIdToken(@RequestBody IdTokenRequest request) {
         try {
             log.info("request.getIdToken(): {}", request.getIdToken());
             log.info("카카오 OIDC 로그인 요청 - deviceId: {}", request.getDeviceId());

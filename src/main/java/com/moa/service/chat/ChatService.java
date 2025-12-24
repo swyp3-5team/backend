@@ -3,10 +3,10 @@ package com.moa.service.chat;
 import com.moa.config.chat.ClovaStudioConfig;
 import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ChatResponse;
+import com.moa.dto.chat.ChatResponse.TransactionInfo;
 import com.moa.dto.chat.clova.ClovaStudioRequest;
-import com.moa.entity.AiChattingLog;
-import com.moa.entity.ChatModeType;
-import com.moa.entity.User;
+import com.moa.entity.*;
+import com.moa.exception.InvalidImageException;
 import com.moa.repository.AiChattingLogRepository;
 import com.moa.repository.UserRepository;
 import com.moa.service.chat.clova.ClovaStudioService;
@@ -18,9 +18,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -40,7 +43,7 @@ public class ChatService {
     private final ClovaStudioConfig clovaConfig;
 
     @Transactional
-    public ChatResponse sendMessage(Long userId, String userMessage, String mode) {
+    public ChatResponse sendMessage(Long userId, String userMessage, String mode, MultipartFile image) {
         try {
             // 1. 사용자 확인
             User user = userRepository.findById(userId)
@@ -72,7 +75,7 @@ public class ChatService {
             // 5: 유사한 과거 대화가 있으면 컨텍스트에 추가
             StringBuilder ragContext = null;
             if (!similarChats.isEmpty()) {
-                ragContext = new StringBuilder("참고: 과거 유사한 대화 내역\n");
+                ragContext = new StringBuilder("### 참고: 과거 유사한 대화 내역\n");
                 for (AiChattingLog chat : similarChats) {
                     if (!chat.getChattingId().equals(userLog.getChattingId())) {
                         ragContext.append("- ").append(chat.getChatContent()).append("\n");
@@ -99,11 +102,8 @@ public class ChatService {
                     .content(ragContext != null ? ragContext.toString() + systemPrompt : systemPrompt)
                     .build());
 
-            // 현재 사용자 메시지 추가
-            messages.add(ClovaStudioRequest.Message.builder()
-                    .role("user")
-                    .content(userMessage)
-                    .build());
+            // 현재 사용자 메시지 추가 (이미지 포함 여부에 따라 처리)
+            messages.add(buildUserMessage(userMessage, image));
 
             log.info("Clova Studio API 호출 - 메시지 개수: {}, RAG 활성화: {}",
                     messages.size(), !similarChats.isEmpty());
@@ -123,7 +123,7 @@ public class ChatService {
                     .user(user)
                     .chatContent(aiResponse)
                     .chatType("ASSISTANT")
-                    .emotion(transactionInfo != null ? transactionInfo.getEmotion() : null)
+                    .emotion(transactionInfo != null ? transactionInfo.getEmotion().name() : null)
                     .embeddingVector(aiEmbeddingVectorStr)
                     .build();
             assistantLog = chattingLogRepository.save(assistantLog);
@@ -144,19 +144,18 @@ public class ChatService {
 
     private ChatResponse extractTransactionInfo(String aiResponse) {
         int beginIdx = -1;
-        String upperAiResponse = aiResponse.toUpperCase();
+        String upperAiResponse = aiResponse.toLowerCase();
         try {
-            // "[JSON={...}]" 패턴 찾기
-            int jsonStart = upperAiResponse.indexOf("[JSON={");
+            int jsonStart = upperAiResponse.indexOf("json");
             if (jsonStart == -1) {
-                jsonStart = upperAiResponse.indexOf("[JSON");
+                jsonStart = upperAiResponse.indexOf("{");
                 if(jsonStart == -1) {
-                    return null; // JSON 없음
+                    return null;
                 } else {
-                    beginIdx = "[JSON".length();
+                    beginIdx = "{".length();
                 }
             } else {
-                beginIdx = "[JSON={".length();
+                beginIdx = "json".length();
             }
 
             int jsonEnd = upperAiResponse.indexOf("}", jsonStart);
@@ -169,18 +168,24 @@ public class ChatService {
             String jsonString = aiResponse.substring(jsonStart + beginIdx, jsonEnd);
 
             // 간단한 파싱 (정규식 사용)
-            String pattern = extractField(jsonString, "Pattern");
-            String content = extractField(jsonString, "Content");
-            String pay = extractField(jsonString, "Pay");
-            String payment = extractField(jsonString, "Payment");
-            String emotion = extractField(jsonString, "Emotion");
+            String pattern = extractField(jsonString, "pattern");
+            String content = extractField(jsonString, "content");
+            String amount = extractField(jsonString, "amount");
+            String payment = extractField(jsonString, "payment");
+            String emotion = extractField(jsonString, "emotion");
+            String category = extractField(jsonString, "category");
+            String place = extractField(jsonString, "place");
+            String transactionDateStr = extractField(jsonString, "transactionDate");
 
-            ChatResponse.TransactionInfo transactionInfo = ChatResponse.TransactionInfo.builder()
+            TransactionInfo transactionInfo = ChatResponse.TransactionInfo.builder()
                     .pattern(pattern)
                     .content(content)
-                    .pay(pay)
-                    .payment(payment)
-                    .emotion(emotion)
+                    .amount(TransactionInfo.parseAmount(amount))
+                    .paymentMethod(PaymentMethod.from(payment))
+                    .emotion(TransactionEmotion.valueOf(emotion))
+                    .category(category)
+                    .place(place)
+                    .transactionDate(transactionDateStr != null ? LocalDate.parse(transactionDateStr) : null)
                     .build();
 
             return ChatResponse.builder()
@@ -216,6 +221,66 @@ public class ChatService {
         return value.isEmpty() || "null".equals(value) ? null : value;  // 빈 문자열/null 은 null 반환
     }
 
+    /**
+     * 사용자 메시지 생성 (텍스트만 또는 텍스트+이미지)
+     */
+    private ClovaStudioRequest.Message buildUserMessage(String text, MultipartFile image) {
+        if (image == null) {
+            // 텍스트만 전송 (기존 방식 - 역호환성 유지)
+            return ClovaStudioRequest.Message.builder()
+                    .role("user")
+                    .content(text)
+                    .build();
+        } else {
+            // 텍스트 + 이미지 (멀티모달)
+            List<ClovaStudioRequest.MessageContentPart> contentParts = new ArrayList<>();
+
+            // 텍스트 파트 추가
+            contentParts.add(ClovaStudioRequest.MessageContentPart.builder()
+                    .type("text")
+                    .text(text)
+                    .build());
+
+            // 이미지 파트 추가 (Base64 변환)
+            String base64Image = convertImageToBase64(image);
+            contentParts.add(ClovaStudioRequest.MessageContentPart.builder()
+                    .type("image_url")
+                    .dataUri(ClovaStudioRequest.ImageData.builder()
+                            .data(base64Image)
+                            .build())
+                    .build());
+
+            log.info("멀티모달 메시지 생성 완료 - 텍스트: {}, 이미지 크기: {} bytes",
+                     text, image.getSize());
+
+            return ClovaStudioRequest.Message.builder()
+                    .role("user")
+                    .content(contentParts)
+                    .build();
+        }
+    }
+
+    /**
+     * 이미지를 Base64로 변환
+     */
+    private String convertImageToBase64(MultipartFile image) {
+        try {
+            byte[] imageBytes = image.getBytes();
+            String base64 = Base64.getEncoder().encodeToString(imageBytes);
+            String mimeType = image.getContentType();
+
+            String dataUri = String.format("data:%s;base64,%s", mimeType, base64);
+
+            log.debug("이미지 Base64 변환 완료 - 원본: {} bytes, Base64: {} chars",
+                      imageBytes.length, base64.length());
+
+            return dataUri;
+        } catch (IOException e) {
+            log.error("이미지 Base64 변환 실패: {}", e.getMessage(), e);
+            throw new InvalidImageException("이미지 처리 중 오류가 발생했습니다.");
+        }
+    }
+
     public List<ChatHistoryResponse> getChatHistory(Long userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<AiChattingLog> logs = chattingLogRepository
@@ -230,6 +295,43 @@ public class ChatService {
     public void deleteChatHistory(Long userId) {
         chattingLogRepository.deleteByUserUserId(userId);
         log.info("사용자 {}의 대화 히스토리 삭제 완료", userId);
+    }
+
+    /**
+     * 시간대별 인사 메시지 반환
+     */
+    public ChatHistoryResponse getGreetingByTime(Long userId) {
+        LocalTime now = LocalTime.now();
+        CharacterEmotionType emotionType;
+        String[] greetingList;
+
+        if (now.isAfter(LocalTime.of(6, 0)) && now.isBefore(LocalTime.of(12, 0))) {
+            // 06:00~12:00 - 아침
+            emotionType = CharacterEmotionType.BASIC;
+            greetingList = GreetingByTimeType.MORNING_GREETINGS.getGreetingList();
+        } else if (now.isAfter(LocalTime.of(12, 0)) && now.isBefore(LocalTime.of(18, 0))) {
+            // 12:00~18:00 - 오후
+            emotionType = CharacterEmotionType.HAPPY;
+            greetingList = GreetingByTimeType.AFTERNOON_GREETINGS.getGreetingList();
+        } else if (now.isAfter(LocalTime.of(18, 0)) && now.isBefore(LocalTime.of(22, 0))) {
+            // 18:00~22:00 - 저녁
+            emotionType = CharacterEmotionType.CHEER;
+            greetingList = GreetingByTimeType.EVENING_GREETINGS.getGreetingList();
+        } else {
+            // 22:00~06:00 - 밤
+            emotionType = CharacterEmotionType.COMFORT;
+            greetingList = GreetingByTimeType.NIGHT_GREETINGS.getGreetingList();
+        }
+
+        // 랜덤하게 하나 선택
+        Random random = new Random();
+        String greetingMessage = greetingList[random.nextInt(greetingList.length)];
+
+        return ChatHistoryResponse.builder()
+                .chatType("ASSISTANT")
+                .chatContent(greetingMessage)
+                .emotion(emotionType.getEmoji())
+                .build();
     }
 
     private String convertEmbeddingToString(List<Double> embedding) {
