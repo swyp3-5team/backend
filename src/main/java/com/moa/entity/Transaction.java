@@ -1,15 +1,11 @@
 package com.moa.entity;
 
-import com.moa.dto.TransactionUpdateRequest;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.SQLDelete;
-import org.hibernate.annotations.SQLRestriction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @EntityListeners(AuditingEntityListener.class)
@@ -17,8 +13,6 @@ import java.time.LocalDateTime;
 @Table(name = "transactions")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = lombok.AccessLevel.PRIVATE)
-@SQLDelete(sql = "UPDATE transactions SET is_deleted = true WHERE transaction_id = ?")
-@SQLRestriction("is_deleted = false")
 @Builder
 @Getter
 public class Transaction {
@@ -27,21 +21,11 @@ public class Transaction {
     @Column(name = "TRANSACTION_ID")
     private Long id;
 
+    @Column(name = "NAME")
+    private String name;
+
     @Column(name = "AMOUNT", nullable = false)
     private Long amount;
-
-    @Column(name = "TRANSACTION_DATE", nullable = false)
-    private LocalDate transactionDate;
-
-    @Column(name = "PLACE")
-    private String place;
-
-    @Column(name = "PAYMENT_MEMO")
-    private String paymentMemo;
-
-    @Column(name = "EMOTION", nullable = false)
-    @Enumerated(EnumType.STRING)
-    private TransactionEmotion emotion;
 
     @Column(name = "IS_DELETED")
     private boolean isDeleted = false;
@@ -56,11 +40,11 @@ public class Transaction {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
-            name = "USER_ID",
+            name = "TRANSACTION_GROUP_ID",
             nullable = false,
-            foreignKey = @ForeignKey(name = "FK_TRANSACTION_USER")
+            foreignKey = @ForeignKey(name = "FK_TRANSACTION_GROUP_TRANSACTION")
     )
-    private User user;
+    private TransactionGroup transactionGroup;
 
     @Column(name = "CREATED_AT")
     @CreatedDate
@@ -70,12 +54,9 @@ public class Transaction {
     @LastModifiedDate
     private LocalDateTime updatedAt;
 
-    public void update(TransactionUpdateRequest request, Category category) {
-        this.amount = request.amount();
-        this.emotion = TransactionEmotion.from(request.emotion());
-        this.transactionDate = request.transactionDate();
-        this.place = request.place();
+    public void update(String name, Long amount, Category category) {
+        this.name = name;
+        this.amount = amount;
         this.category = category;
-        this.place = request.place();
     }
 }
