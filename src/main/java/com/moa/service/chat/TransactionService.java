@@ -140,14 +140,14 @@ public class TransactionService {
      * 거래내역 조회
      */
     public TransactionGroupInfo getTransaction(Long userId, Long transactionId) {
-        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(userId,transactionId).orElseThrow(
+        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(transactionId,userId).orElseThrow(
                 ()-> new RuntimeException("거래 기록을 찾을 수 없습니다.")
         );
 
         return TransactionGroupInfo.from(
                 transactionGroup,
                 transactionGroup.getTransactions().stream().map(
-                        com.moa.dto.TransactionInfo::from
+                        TransactionInfo::from
                 ).toList()
         );
     }

@@ -18,4 +18,12 @@ public record TransactionInfo(
                 tr.getCategory().getName()
         );
     }
+    public static Long parseAmount(String amount) {
+        if (amount == null || amount.trim().isEmpty()) {
+            return null;
+        }
+
+        String cleanedAmount = amount.replaceAll("[^0-9]", "");
+        return Long.parseLong(cleanedAmount);
+    }
 }
