@@ -73,7 +73,7 @@ public class Budget {
     }
 
     public void update(UpdateBudgetRequest request) {
-        this.memo = request.memo();
-        this.amount = request.amount();
+        if(request.memo() != null) this.memo = request.memo();
+        if(request.amount() != null) this.amount = request.amount();
     }
 }

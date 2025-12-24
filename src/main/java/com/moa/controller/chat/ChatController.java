@@ -5,7 +5,6 @@ import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ChatResponse;
 import com.moa.entity.ChatModeType;
 import com.moa.exception.InvalidImageException;
-import com.moa.service.OcrService;
 import com.moa.service.chat.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,7 +31,6 @@ import java.util.Map;
 public class ChatController {
 
     private final ChatService chatService;
-    private final OcrService ocrService;
 
     @PostMapping(value = "/send", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "AI 챗봇에게 메시지 전송",

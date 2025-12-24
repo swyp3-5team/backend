@@ -140,7 +140,7 @@ public class TransactionService {
      * 거래내역 조회
      */
     public TransactionGroupInfo getTransaction(Long userId, Long transactionId) {
-        TransactionGroup transactionGroup = transactionGroupRepository.findById(transactionId).orElseThrow(
+        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(userId,transactionId).orElseThrow(
                 ()-> new RuntimeException("거래 기록을 찾을 수 없습니다.")
         );
 
