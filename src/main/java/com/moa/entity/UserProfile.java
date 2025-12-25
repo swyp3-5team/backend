@@ -43,6 +43,9 @@ public class UserProfile {
     @Column(name = "VOICE_ENABLE",nullable = false)
     private boolean voiceEnable;
 
+    @Column(name = "AI_CHAT_TYPE", columnDefinition = "VARCHAR(20) DEFAULT 'EMPATH'")
+    private String aiChatType;
+
     @CreatedDate
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
@@ -73,5 +76,9 @@ public class UserProfile {
 
     public static UserProfile init(User user, UserProfileInitRequest request) {
         return new UserProfile(user,request);
+    }
+
+    public void updateAiChatType(String aiChatType) {
+        this.aiChatType = aiChatType;
     }
 }

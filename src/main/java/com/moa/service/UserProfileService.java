@@ -44,4 +44,22 @@ public class UserProfileService {
 
         return UserProfileResponse.from(userProfile);
     }
+
+    @Transactional
+    public void settingAiChatType(Long userId, String aiChatType) {
+        UserProfile userProfile = userProfileRepository.findByUser_UserId(userId).orElseThrow(
+                () -> new ProfileNotFoundException("프로필을 찾을 수 없습니다.")
+        );
+
+        userProfile.updateAiChatType(aiChatType);
+        log.info("사용자 {} AI 말투 설정 업데이트: {}", userId, aiChatType);
+    }
+
+    public String getAiChatType(Long userId) {
+        UserProfile userProfile = userProfileRepository.findByUser_UserId(userId).orElseThrow(
+                () -> new ProfileNotFoundException("프로필을 찾을 수 없습니다.")
+        );
+
+        return userProfile.getAiChatType();
+    }
 }
