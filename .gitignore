@@ -6,3 +6,4 @@ src/main/resources/application-dev.properties
 *.ps1
 .idea
 /target/
+*.p8
