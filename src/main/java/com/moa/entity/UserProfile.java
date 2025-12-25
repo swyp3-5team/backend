@@ -1,6 +1,8 @@
 package com.moa.entity;
 
 import com.moa.dto.UserProfileInitRequest;
+import com.moa.entity.conf.AiChatEnum;
+
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -72,6 +74,7 @@ public class UserProfile {
         this.pictureEnable = Boolean.TRUE.equals(request.pictureEnable());
         this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
+        this.aiChatType = AiChatEnum.EMPATH.getText();
     }
 
     public static UserProfile init(User user, UserProfileInitRequest request) {
