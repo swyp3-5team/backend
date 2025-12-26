@@ -46,7 +46,10 @@ public class TransactionService {
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
         // 거래일자
-        LocalDate transactionDate = request.transactionDate();
+        LocalDate transactionDate = LocalDate.now();
+        if (request.transactionDate() != null) {
+            transactionDate = request.transactionDate();
+        }
 
         // 장소
         String place = request.place();
@@ -74,49 +77,53 @@ public class TransactionService {
 
         // 그룹에 포함된 세부내역으로 transaction 생성
         List<TransactionDetailRequest> transactions = request.transactions();
-        
+
         // 묶음 내부를 순회하며 Transaction 생성
         List<Transaction> transactionList = transactions.stream().map(
                 (tr) -> {
                     Category category = findOrCreateCategory(tr.categoryName(), categoryType);
-                    return Transaction.builder()
+
+                    Transaction transaction =  Transaction.builder()
                             .name(tr.name())
                             .amount(tr.amount())
                             .category(category)
                             .transactionGroup(transactionGroup)
                             .build();
+                    transactionGroup.addTransaction(transaction);
+                    return transaction;
                 }
         ).toList();
+
 
         transactionGroupRepository.save(transactionGroup);
         transactionRepository.saveAll(transactionList);
 
         log.info("사용자 {}의 거래내역 추가 완료 - 감정: {}",
-                userId,emotion);
+                userId, emotion);
 
         return transactionGroup.getId();
     }
 
     /*
-    * 2025-12 형태의 날짜 입력을 기반으로 해당 월의 기록을 조회
-    * */
-    @Transactional(readOnly=true)
+     * 2025-12 형태의 날짜 입력을 기반으로 해당 월의 기록을 조회
+     * */
+    @Transactional(readOnly = true)
     public List<TransactionGroupInfo> getTransactionsByYearMonth(Long userId, YearMonth yearMonth) {
         LocalDate start = yearMonth.atDay(1);
         LocalDate end = yearMonth.atEndOfMonth();
 
         List<TransactionGroup> trGroupList = transactionGroupRepository.findByUser_UserIdAndTransactionDateBetween(userId, start, end);
 
-        if(trGroupList.isEmpty()){
+        if (trGroupList.isEmpty()) {
             return null;
         }
 
         return trGroupList.stream().map(
-                trGroup -> TransactionGroupInfo.from(
-                        trGroup,
-                        trGroup.getTransactions().stream().map(
-                                com.moa.dto.TransactionInfo::from
-                        ).toList()))
+                        trGroup -> TransactionGroupInfo.from(
+                                trGroup,
+                                trGroup.getTransactions().stream().map(
+                                        com.moa.dto.TransactionInfo::from
+                                ).toList()))
                 .toList();
     }
 
@@ -140,8 +147,8 @@ public class TransactionService {
      * 거래내역 조회
      */
     public TransactionGroupInfo getTransaction(Long userId, Long transactionId) {
-        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(transactionId,userId).orElseThrow(
-                ()-> new RuntimeException("거래 기록을 찾을 수 없습니다.")
+        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(transactionId, userId).orElseThrow(
+                () -> new RuntimeException("거래 기록을 찾을 수 없습니다.")
         );
 
         return TransactionGroupInfo.from(
@@ -157,10 +164,10 @@ public class TransactionService {
      */
     @Transactional
     public void updateTransaction(Long userId, Long transactionGroupId, TransactionGroupInfo transactionGroupInfo) {
-        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(userId,transactionGroupId).orElseThrow(
+        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(userId, transactionGroupId).orElseThrow(
                 () -> new RuntimeException("거래 내역이 없습니다.")
         );
-        for(TransactionInfo transactionInfo : transactionGroupInfo.transactionInfoList()) {
+        for (TransactionInfo transactionInfo : transactionGroupInfo.transactionInfoList()) {
             if (transactionInfo == null) {
                 return;
             }
@@ -184,7 +191,7 @@ public class TransactionService {
      */
     @Transactional
     public void deleteTransaction(Long userId, Long transactionId) {
-        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(userId,transactionId).orElseThrow(
+        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(userId, transactionId).orElseThrow(
                 () -> new RuntimeException("존재하지 않는 지출 기록입니다.")
         );
 

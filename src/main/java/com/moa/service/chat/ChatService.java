@@ -1,16 +1,22 @@
 package com.moa.service.chat;
 
 import com.moa.config.chat.ClovaStudioConfig;
+import com.moa.dto.Hcx007RequestDto;
+import com.moa.dto.TransactionGroupSimpleInfo;
 import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ChatResponse;
-import com.moa.dto.chat.ChatResponse.TransactionInfo;
 import com.moa.dto.chat.clova.ClovaStudioRequest;
-import com.moa.entity.*;
+import com.moa.entity.AiChattingLog;
+import com.moa.entity.CharacterEmotionType;
+import com.moa.entity.GreetingByTimeType;
+import com.moa.entity.User;
 import com.moa.exception.InvalidImageException;
+import com.moa.exception.UserNotFoundException;
+import com.moa.reponse.AiReceiptResponse;
 import com.moa.repository.AiChattingLogRepository;
 import com.moa.repository.UserRepository;
+import com.moa.service.OcrService;
 import com.moa.service.chat.clova.ClovaStudioService;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -21,12 +27,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static com.moa.config.chat.ClovaStudioConfig.OCR_ANALYSIS_INSTRUCTION;
 
 /**
  * 채팅 비즈니스 로직 서비스
@@ -41,6 +51,7 @@ public class ChatService {
     private final AiChattingLogRepository chattingLogRepository;
     private final UserRepository userRepository;
     private final ClovaStudioConfig clovaConfig;
+    private final OcrService ocrService;
 
     @Transactional
     public ChatResponse sendMessage(Long userId, String userMessage, String mode, MultipartFile image) {
@@ -89,12 +100,6 @@ public class ChatService {
             List<ClovaStudioRequest.Message> messages = new ArrayList<>();
 
             String systemPrompt = clovaConfig.getSystemPrompt();
-            if(mode.equals(ChatModeType.CHAT.getText())) {
-                // 대화 모드는 그대로...
-            } else if(mode.equals(ChatModeType.RECEIPT.getText())) {
-                // 내역 모드는 Json 형식 반환
-                systemPrompt = clovaConfig.getSystemPrompt() + clovaConfig.getJsonPrompt();
-            }
 
             // 시스템 프롬프트 추가
             messages.add(ClovaStudioRequest.Message.builder()
@@ -112,8 +117,8 @@ public class ChatService {
             String aiResponse = clovaStudioService.sendMessage(messages);
 
             // 8. JSON 파싱 (거래내역 추출)
-            ChatResponse cleanChatResponse = extractTransactionInfo(aiResponse);
-            ChatResponse.TransactionInfo transactionInfo = cleanChatResponse != null ? cleanChatResponse.getTransactionInfo() : null;
+            ChatResponse cleanChatResponse = extractTransactionGroupInfo(aiResponse);
+//            TransactionGroupInfo transactionGroupInfo = cleanChatResponse != null ? cleanChatResponse.getTransactionInfo() : null;
 
             // 9. AI 응답 임베딩 벡터 생성 및 저장
             List<Double> aiEmbedding = clovaStudioService.embedText(aiResponse);
@@ -123,17 +128,17 @@ public class ChatService {
                     .user(user)
                     .chatContent(aiResponse)
                     .chatType("ASSISTANT")
-                    .emotion(transactionInfo != null ? transactionInfo.getEmotion().name() : null)
+//                    .emotion(transactionInfo != null ? transactionInfo.getEmotion().name() : null)
                     .embeddingVector(aiEmbeddingVectorStr)
                     .build();
             assistantLog = chattingLogRepository.save(assistantLog);
 
-            log.info("채팅 응답 완료 - chattingId: {}, 거래내역: {}",
-                    assistantLog.getChattingId(), transactionInfo != null ? "있음" : "없음");
+            log.info("채팅 응답 완료 - chattingId: {}, 거래내역: {}");
+//                    assistantLog.getChattingId(), transactionInfo != null ? "있음" : "없음");
 
             return ChatResponse.builder()
                     .message(cleanChatResponse == null ? aiResponse : cleanChatResponse.getMessage())
-                    .transactionInfo(transactionInfo)
+//                    .transactionInfo(transactionInfo)
                     .build();
 
         } catch (Exception e) {
@@ -142,14 +147,76 @@ public class ChatService {
         }
     }
 
-    private ChatResponse extractTransactionInfo(String aiResponse) {
+    @Transactional
+    public AiReceiptResponse sendReceiptMessage(Long userId, String userMessage, MultipartFile image) throws IOException {
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new UserNotFoundException("사용자를 찾을 수 없습니다.")
+        );
+
+        log.info("영수증 모드 userId : {}", userId);
+
+        // 3. 사용자 메시지 저장 (임베딩 벡터 포함)
+        if (userMessage != null) {
+            List<Double> userEmbedding = clovaStudioService.embedText(userMessage);
+            String embeddingVectorStr = convertEmbeddingToString(userEmbedding);
+
+            AiChattingLog userLog = AiChattingLog.builder()
+                    .user(user)
+                    .chatContent(userMessage)
+                    .chatType("USER")
+                    .embeddingVector(embeddingVectorStr)
+                    .build();
+            userLog = chattingLogRepository.save(userLog);
+        }
+
+        String ocrText = ocrService.extractTransaction(image); // OCR text 출력
+
+        log.info("OCR Text : {}", ocrText);
+        return getStructuredOutput(ocrText);
+    }
+
+    private AiReceiptResponse getStructuredOutput(String ocrText) {
+        //프롬프트 구성
+        List<Hcx007RequestDto.Message> prompts = new ArrayList<>();
+        Hcx007RequestDto.Message systemPrompt = Hcx007RequestDto.Message.builder()
+                .role("system")
+                .content(OCR_ANALYSIS_INSTRUCTION)
+                .build();
+        Hcx007RequestDto.Message userPrompt = Hcx007RequestDto.Message.builder()
+                .role("user")
+                .content(ocrText)
+                .build();
+        prompts.add(systemPrompt);
+        prompts.add(userPrompt);
+
+        // 요청 생성
+        Hcx007RequestDto hcx007RequestDto = Hcx007RequestDto.builder()
+                .messages(prompts)
+                .topP(0.8)
+                .topK(0)
+                .maxCompletionTokens(6000)
+                .temperature(0.0)
+                .repetitionPenalty(1.1)
+                .thinking(Hcx007RequestDto.Thinking.builder()
+                        .effort("none")
+                        .build())
+                .stop(null)
+                .responseFormat(Hcx007RequestDto.ResponseFormat.createResponseFormat())
+                .build();
+
+        String content = clovaStudioService.sendReceiptMessage(hcx007RequestDto);
+        return clovaStudioService.extractTransaction(content);
+    }
+
+
+    private ChatResponse extractTransactionGroupInfo(String aiResponse) {
         int beginIdx = -1;
         String upperAiResponse = aiResponse.toLowerCase();
         try {
             int jsonStart = upperAiResponse.indexOf("json");
             if (jsonStart == -1) {
                 jsonStart = upperAiResponse.indexOf("{");
-                if(jsonStart == -1) {
+                if (jsonStart == -1) {
                     return null;
                 } else {
                     beginIdx = "{".length();
@@ -177,21 +244,9 @@ public class ChatService {
             String place = extractField(jsonString, "place");
             String transactionDateStr = extractField(jsonString, "transactionDate");
 
-            TransactionInfo transactionInfo = ChatResponse.TransactionInfo.builder()
-                    .pattern(pattern)
-                    .content(content)
-                    .amount(TransactionInfo.parseAmount(amount))
-                    .paymentMethod(PaymentMethod.from(payment))
-                    .emotion(TransactionEmotion.valueOf(emotion))
-                    .category(category)
-                    .place(place)
-                    .transactionDate(transactionDateStr != null ? LocalDate.parse(transactionDateStr) : null)
-                    .build();
+            TransactionGroupSimpleInfo groupSimpleInfo = null;
 
-            return ChatResponse.builder()
-                    .message(cleanMessage)
-                    .transactionInfo(transactionInfo)
-                    .build();
+            return null;
 
         } catch (Exception e) {
             log.warn("JSON 파싱 실패: {}", e.getMessage());
@@ -251,7 +306,7 @@ public class ChatService {
                     .build());
 
             log.info("멀티모달 메시지 생성 완료 - 텍스트: {}, 이미지 크기: {} bytes",
-                     text, image.getSize());
+                    text, image.getSize());
 
             return ClovaStudioRequest.Message.builder()
                     .role("user")
@@ -272,7 +327,7 @@ public class ChatService {
             String dataUri = String.format("data:%s;base64,%s", mimeType, base64);
 
             log.debug("이미지 Base64 변환 완료 - 원본: {} bytes, Base64: {} chars",
-                      imageBytes.length, base64.length());
+                    imageBytes.length, base64.length());
 
             return dataUri;
         } catch (IOException e) {

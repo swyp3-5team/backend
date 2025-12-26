@@ -10,6 +10,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @EntityListeners(AuditingEntityListener.class)
@@ -61,7 +62,7 @@ public class TransactionGroup {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
-    private List<Transaction> transactions;
+    private List<Transaction> transactions = new ArrayList<>();
 
     @Column(name = "CREATED_AT")
     @CreatedDate
@@ -70,4 +71,8 @@ public class TransactionGroup {
     @Column(name = "UPDATED_AT")
     @LastModifiedDate
     private LocalDateTime updatedAt;
+
+    public void addTransaction(Transaction transaction) {
+        transactions.add(transaction);
+    }
 }
