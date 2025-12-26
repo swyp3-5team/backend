@@ -5,7 +5,9 @@ import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ChatResponse;
 import com.moa.entity.ChatModeType;
 import com.moa.exception.InvalidImageException;
+import com.moa.reponse.AiReceiptResponse;
 import com.moa.service.chat.ChatService;
+import com.moa.service.chat.TransactionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -31,18 +33,19 @@ import java.util.Map;
 public class ChatController {
 
     private final ChatService chatService;
+    private final TransactionService transactionService;
 
     @PostMapping(value = "/send", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "AI 챗봇에게 메시지 전송",
-               description = "텍스트 메시지와 영수증 이미지를 전송합니다. (이미지는 선택)" +
-                            "mode: RECEIPT(내역모드) or CHAT(대화모드)")
+            description = "텍스트 메시지와 영수증 이미지를 전송합니다. (이미지는 선택)" +
+                    "mode: RECEIPT(내역모드) or CHAT(대화모드)")
     public ResponseEntity<ChatResponse> sendMessage(
             @CurrentUserId Long userId,
             @RequestPart(value = "message", required = false) String message,
             @RequestPart("mode") String mode,
             @RequestPart(value = "image", required = false) MultipartFile image) {
 
-        if(mode == null || mode.isEmpty() || !(ChatModeType.RECEIPT.getText().equals(mode) || ChatModeType.CHAT.getText().equals(mode))) {
+        if (mode == null || mode.isEmpty() || !(ChatModeType.RECEIPT.getText().equals(mode) || ChatModeType.CHAT.getText().equals(mode))) {
             String errorMessage = "mode는 'RECEIPT' 또는 'CHAT'이어야 합니다.";
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(ChatResponse.builder().message(errorMessage).build());
@@ -54,8 +57,21 @@ public class ChatController {
 
         try {
             log.info("사용자 {} 메시지 전송 요청: {}, 이미지 첨부: {}", userId, message, image != null);
-            ChatResponse response = chatService.sendMessage(userId, message, mode, image);
-            return ResponseEntity.ok(response);
+
+            if (ChatModeType.RECEIPT.getText().equals(mode)) {
+                AiReceiptResponse response = chatService.sendReceiptMessage(userId, message, image);
+                Long transactionId = transactionService.addTransactionInfo(userId, response.request());
+
+                return ResponseEntity.ok(
+                        new ChatResponse(
+                                response.message(),
+                                transactionService.getTransaction(userId, transactionId)
+                        )
+                );
+            } else {
+                ChatResponse response = chatService.sendMessage(userId, message, mode, image);
+                return ResponseEntity.ok(response);
+            }
         } catch (InvalidImageException e) {
             log.warn("이미지 검증 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -75,7 +91,7 @@ public class ChatController {
         // 타입 검증 (JPEG, PNG만 허용)
         String contentType = image.getContentType();
         if (contentType == null ||
-            (!contentType.equals("image/jpeg") && !contentType.equals("image/png"))) {
+                (!contentType.equals("image/jpeg") && !contentType.equals("image/png"))) {
             throw new InvalidImageException("지원되는 이미지 형식은 JPEG와 PNG입니다.");
         }
 
