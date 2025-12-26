@@ -2,7 +2,6 @@ package com.moa.service.chat;
 
 import com.moa.config.chat.ClovaStudioConfig;
 import com.moa.dto.Hcx007RequestDto;
-import com.moa.dto.TransactionGroupSimpleInfo;
 import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ChatResponse;
 import com.moa.dto.chat.clova.ClovaStudioRequest;
@@ -243,8 +242,6 @@ public class ChatService {
             String category = extractField(jsonString, "category");
             String place = extractField(jsonString, "place");
             String transactionDateStr = extractField(jsonString, "transactionDate");
-
-            TransactionGroupSimpleInfo groupSimpleInfo = null;
 
             return null;
 
