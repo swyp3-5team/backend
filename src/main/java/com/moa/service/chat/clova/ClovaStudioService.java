@@ -11,8 +11,6 @@ import com.moa.dto.chat.clova.ClovaEmbeddingRequest;
 import com.moa.dto.chat.clova.ClovaEmbeddingResponse;
 import com.moa.dto.chat.clova.ClovaStudioRequest;
 import com.moa.dto.chat.clova.ClovaStudioResponse;
-import com.moa.entity.Category;
-import com.moa.entity.CategoryType;
 import com.moa.entity.TransactionEmotion;
 import com.moa.reponse.AiReceiptResponse;
 import com.moa.repository.CategoryRepository;
@@ -158,19 +156,23 @@ public class ClovaStudioService {
 
     public AiReceiptResponse extractTransaction(String content) {
         String json = cleanUpJson(content);
+        log.info("Clova receipt cleaned JSON (head 1000): {}",
+                json != null ? json.substring(0, Math.min(1000, json.length())) : "null");
         AiJson aijson = jsonToDto(json);
-
+        log.info("Clova receipt parsed items size: {}",
+                aijson.getItems() != null ? aijson.getItems().size() : 0);
         if (aijson.getItems() == null || aijson.getItems().isEmpty()) {
             throw new IllegalArgumentException("AI 파싱 결과가 없습니다.");
         }
-        String categoryName = aijson.getItems().get(0).getCategory();
-        Category category  = categoryRepository.findByNameAndType(categoryName, CategoryType.EXPENSE).orElse(
-                categoryRepository.findByName("기타")
-        );
+
+
         List<TransactionDetailRequest> transactions = aijson.getItems().stream().map(
-                item ->TransactionDetailRequest.fromJson(
-                        item,category
-                )
+                item -> {
+                    String categoryName = item.getName();
+                    return TransactionDetailRequest.fromJson(
+                            item, categoryName
+                    );
+                }
         ).toList();
 
         // 거래 내역 생성 요청 DTO 형태로 반환

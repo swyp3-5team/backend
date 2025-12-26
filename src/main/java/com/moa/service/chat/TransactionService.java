@@ -122,7 +122,7 @@ public class TransactionService {
                         trGroup -> TransactionGroupInfo.from(
                                 trGroup,
                                 trGroup.getTransactions().stream().map(
-                                        com.moa.dto.TransactionInfo::from
+                                        TransactionInfo::from
                                 ).toList()))
                 .toList();
     }

@@ -56,6 +56,7 @@ public class TransactionGroup {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
+    @Builder.Default
     @OneToMany(
             mappedBy = "transactionGroup",
             fetch = FetchType.LAZY,
