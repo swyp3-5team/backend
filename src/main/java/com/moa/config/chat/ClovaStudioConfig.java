@@ -44,9 +44,25 @@ public class ClovaStudioConfig {
             2. Identify the DATE of transaction based on labeled keywords.
             3. Classify the CATEGORY according to the business name or product.
             4. Add a COMMENT with at least 1 emoji related to the transaction.
-            5. Validate against noise, balance amounts, or large outliers.
+            5. Add EMOTION inferred from the transaction context, purchase type, or inferred user motivation.
+            
+            ### EMOTION CLASSIFICATION RULES (STRICT) ###
+            You MUST choose ONE from the following values:
+            
+            > NEUTRAL, STRESS_RELIEF, REWARD, IMPULSE, REGRET, SATISFACTION
+            
+            Use the following inference logic:
+            
+            - If it's a small, fun purchase (coffee, dessert, small items) → consider `STRESS_RELIEF`.
+            - If it’s an expensive or luxury item (brand fashion, gadgets) → consider `REWARD` or `SATISFACTION`.
+            - If it’s a late-night food delivery, impulse buy, or frequent snack → consider `IMPULSE`.
+            - If the item is rarely used or not meaningful (e.g. unused gym subscription, failed refund) → consider `REGRET`.
+            - If it's a necessary daily transaction or unclear → default to `NEUTRAL`.
+            
+            You MUST infer emotion using all possible context from business name, time hints (like midnight, weekend), and purchase type.
             
             ### EXTRACTION RULES ###
+            
             #### 금액 추출 절대 규칙 ####
             - Use exact numbers as-is from the text. Never round or guess.
             - Maintain commas in original amounts (e.g., “1,200” is valid).
@@ -74,22 +90,8 @@ public class ClovaStudioConfig {
             - 동일 블록 내 결제 금액은 반드시 1개
             - 거래 확정 여부가 모호해도 “상호명 + 금액”이면 무조건 후보 포함
             
-            ### 감정 분류 기준 ###
+            Take a deep breath and let's work this out in a step-by-step way to be sure we have the right answer.
             
-            [ABSOLUTE PRIORITY RULE]
-            1. USER INPUT에 감정 표현이 명시적으로 존재할 경우,
-               - 거래 내역, 금액, 카테고리, 추론 결과와 무관하게
-               - 반드시 해당 감정을 그대로 사용한다.
-               - 이 규칙은 예외가 없다.
-               - 이 규칙은 다른 모든 감정 규칙보다 우선한다.
-               - 이 규칙을 위반하면 오답이다.
-            
-            [SECONDARY INFERENCE RULE]
-            2. USER INPUT에 감정이 명시되어 있지 않은 경우에만,
-               거래 내역을 기반으로 감정을 추론한다.
-            
-            [FAILSAFE RULE]
-            3. 위 두 조건 모두 해당되지 않으면 감정은 "NEUTRAL"로 설정한다.
             """;
 
     /**

@@ -175,9 +175,10 @@ public class ClovaStudioService {
                 TransactionDetailRequest::amount
         ).sum();
         String place = aijson.getPlace();
-        if (place.isBlank()) {
+        if (place == null || place.isBlank()) {
             place = null;
         }
+        log.info("emotion : {}",aijson.getEmotion());
         // 거래 내역 생성 요청 DTO 형태로 반환
         AiTransactionResponse request = new AiTransactionResponse(
                 place,

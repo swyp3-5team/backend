@@ -99,7 +99,7 @@ public class Hcx007RequestDto {
 
             Map<String, Object> emotionProperty = Map.of(
                     "type", "string",
-                    "enum", List.of("일상", "보상심리", "만족", "스트레스 해소", "충동구매", "후회"),
+                    "enum", List.of("NEUTRAL", "IMPULSE", "SATISFACTION", "STRESS_RELIEF", "IMPULSE", "REGRET"),
                     "description", "소비 내역에 대한 감정 분류"
             );
 
