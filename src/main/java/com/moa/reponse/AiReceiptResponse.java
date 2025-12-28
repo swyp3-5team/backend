@@ -1,9 +1,9 @@
 package com.moa.reponse;
 
-import com.moa.dto.TransactionCreateRequest;
+import com.moa.dto.AiTransactionResponse;
 
 public record AiReceiptResponse(
         String message,
-        TransactionCreateRequest request
+        AiTransactionResponse request
 ) {
 }

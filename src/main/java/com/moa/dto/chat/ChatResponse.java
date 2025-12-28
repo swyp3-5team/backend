@@ -1,6 +1,6 @@
 package com.moa.dto.chat;
 
-import com.moa.dto.TransactionCreateRequest;
+import com.moa.dto.AiTransactionResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,5 +16,5 @@ import lombok.NoArgsConstructor;
 public class ChatResponse {
 
     private String message;
-    private TransactionCreateRequest transactionInfo;
+    private AiTransactionResponse transactionInfo;
 }

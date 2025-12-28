@@ -3,10 +3,7 @@ package com.moa.service.chat.clova;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.moa.config.chat.ClovaStudioConfig;
-import com.moa.dto.AiJson;
-import com.moa.dto.Hcx007RequestDto;
-import com.moa.dto.TransactionCreateRequest;
-import com.moa.dto.TransactionDetailRequest;
+import com.moa.dto.*;
 import com.moa.dto.chat.clova.ClovaEmbeddingRequest;
 import com.moa.dto.chat.clova.ClovaEmbeddingResponse;
 import com.moa.dto.chat.clova.ClovaStudioRequest;
@@ -168,19 +165,22 @@ public class ClovaStudioService {
 
         List<TransactionDetailRequest> transactions = aijson.getItems().stream().map(
                 item -> {
-                    String categoryName = item.getName();
+                    String categoryName = item.getCategory();
                     return TransactionDetailRequest.fromJson(
                             item, categoryName
                     );
                 }
         ).toList();
-
+        Long totalAmount = transactions.stream().mapToLong(
+                TransactionDetailRequest::amount
+        ).sum();
         // 거래 내역 생성 요청 DTO 형태로 반환
-        TransactionCreateRequest request = new TransactionCreateRequest(
+        AiTransactionResponse request = new AiTransactionResponse(
                 aijson.getPlace(),
                 parseLocalDate(aijson.getTransactionDate()),
                 "CARD",
                 null,
+                totalAmount,
                 TransactionEmotion.from(aijson.getEmotion()).name(),
                 "EXPENSE",
                 transactions
