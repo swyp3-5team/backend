@@ -128,7 +128,7 @@ public class Hcx007RequestDto {
             Map<String, Object> schema = new LinkedHashMap<>();
             schema.put("type", "object");
             schema.put("properties", properties);
-            schema.put("required", List.of("items", "emoji", "comment"));
+            schema.put("required", List.of("items", "emotion", "comment"));
 
             return new ResponseFormat("json", schema);
         }

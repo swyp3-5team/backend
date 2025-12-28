@@ -168,29 +168,47 @@ public class ChatService {
             userLog = chattingLogRepository.save(userLog);
         }
         String text = null;
-        if(image != null){
-            text = ocrService.extractTransaction(image); // OCR text 출력
+        String OcrText = null;
+        if (image != null) {
+            OcrText = ocrService.extractTransaction(image); // OCR text 출력
             log.info("OCR Text : {}", text);
-        }else{
-            text = userMessage;
         }
+        text = userMessage;
 
-        return getStructuredOutput(text);
+        return getStructuredOutput(text, OcrText);
     }
 
-    private AiReceiptResponse getStructuredOutput(String ocrText) {
+    private AiReceiptResponse getStructuredOutput(String text, String OcrText) {
         //프롬프트 구성
         List<Hcx007RequestDto.Message> prompts = new ArrayList<>();
         Hcx007RequestDto.Message systemPrompt = Hcx007RequestDto.Message.builder()
                 .role("system")
                 .content(OCR_ANALYSIS_INSTRUCTION)
                 .build();
-        Hcx007RequestDto.Message userPrompt = Hcx007RequestDto.Message.builder()
-                .role("user")
-                .content(ocrText)
-                .build();
+
         prompts.add(systemPrompt);
-        prompts.add(userPrompt);
+        StringBuilder userContent = new StringBuilder();
+        if (OcrText != null && !OcrText.isBlank()) {
+            userContent.append("[OCR RESULT]\n")
+                    .append(OcrText)
+                    .append("\n\n");
+        }
+
+        if (text != null && !text.isBlank()) {
+            userContent.append("[USER INPUT]\n")
+                    .append(text);
+        }
+
+        prompts.add(
+                Hcx007RequestDto.Message.builder()
+                        .role("user")
+                        .content(userContent.toString())
+                        .build()
+        );
+        for (Hcx007RequestDto.Message message : prompts) {
+            log.info("[{}] content:\n{}", message.getRole(), message.getContent());
+        }
+
 
         // 요청 생성
         Hcx007RequestDto hcx007RequestDto = Hcx007RequestDto.builder()

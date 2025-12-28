@@ -174,9 +174,13 @@ public class ClovaStudioService {
         Long totalAmount = transactions.stream().mapToLong(
                 TransactionDetailRequest::amount
         ).sum();
+        String place = aijson.getPlace();
+        if (place.isBlank()) {
+            place = null;
+        }
         // 거래 내역 생성 요청 DTO 형태로 반환
         AiTransactionResponse request = new AiTransactionResponse(
-                aijson.getPlace(),
+                place,
                 parseLocalDate(aijson.getTransactionDate()),
                 "CARD",
                 null,
