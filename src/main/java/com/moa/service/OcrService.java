@@ -1,5 +1,6 @@
 package com.moa.service;
 
+import com.moa.config.chat.ClovaStudioConfig;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -18,8 +19,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class OcrService {
-    private final String ocrSecretKey = "TE9XRGNkbEx5UmNLREh3bE9NY1JFUXl6R0VpSnpVQUg=";
-    private final String ocrUri = "https://q9gjph24jk.apigw.ntruss.com/custom/v1/48777/fbae041b02c41ed0fd8a4efb039bc780dd6af4a1f0c420f42561ae705dda43fe/general";
+    private final ClovaStudioConfig studioConfig;
     private final WebClient webClient = WebClient.builder().build();
 
     public String extractTransaction(MultipartFile image) throws IOException {
@@ -27,10 +27,11 @@ public class OcrService {
                 UUID.randomUUID().toString(),
                 image
         );
+        log.info("secret, url : {}, {}",studioConfig.getOcrUri(),studioConfig.getOcrSecretKey());
 
         ClovaOcrResponse clovaOcrResponse = webClient.post()
-                .uri(ocrUri)
-                .header("X-OCR-SECRET", ocrSecretKey)
+                .uri(studioConfig.getOcrUri())
+                .header("X-OCR-SECRET", studioConfig.getOcrSecretKey())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(clovaOcrRequest)
                 .retrieve()

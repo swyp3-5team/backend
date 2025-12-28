@@ -15,6 +15,12 @@ import java.util.List;
 @Getter
 public class ClovaStudioConfig {
 
+    @Value("${OCR_SECRET_KEY}")
+    private String ocrSecretKey;
+
+    @Value("${OCR_URL}")
+    private String ocrUri;
+
     @Value("${clova.studio.api-key}")
     private String apiKey;
 
