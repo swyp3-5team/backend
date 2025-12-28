@@ -167,11 +167,15 @@ public class ChatService {
                     .build();
             userLog = chattingLogRepository.save(userLog);
         }
+        String text = null;
+        if(image != null){
+            text = ocrService.extractTransaction(image); // OCR text 출력
+            log.info("OCR Text : {}", text);
+        }else{
+            text = userMessage;
+        }
 
-        String ocrText = ocrService.extractTransaction(image); // OCR text 출력
-
-        log.info("OCR Text : {}", ocrText);
-        return getStructuredOutput(ocrText);
+        return getStructuredOutput(text);
     }
 
     private AiReceiptResponse getStructuredOutput(String ocrText) {
