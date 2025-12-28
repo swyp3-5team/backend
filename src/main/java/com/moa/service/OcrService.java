@@ -30,8 +30,8 @@ public class OcrService {
         log.info("secret, url : {}, {}",studioConfig.getOcrUri(),studioConfig.getOcrSecretKey());
 
         ClovaOcrResponse clovaOcrResponse = webClient.post()
-                .uri(studioConfig.getOcrUri())
-                .header("X-OCR-SECRET", studioConfig.getOcrSecretKey())
+                .uri(studioConfig.getOcrUri().trim())
+                .header("X-OCR-SECRET", studioConfig.getOcrSecretKey().trim())
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(clovaOcrRequest)
                 .retrieve()

@@ -58,6 +58,7 @@ public class ClovaStudioConfig {
             - Prefer labeled fields like "결제일자", "승인일", "거래일"
             - Normalize to YYYY-MM-DD format.
             - If no definitive date is found, return `null`.
+            - If no definitive year is found, return date as 0000-mm-dd structure
             
             #### 카테고리 분류 기준 ####
             - 식비: 식당, 카페, 배달, 음료 등
