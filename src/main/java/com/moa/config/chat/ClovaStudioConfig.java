@@ -72,6 +72,7 @@ public class ClovaStudioConfig {
             - 2번째 줄의 숫자는 잔액(BALANCE_AMOUNT)으로 간주
             - 동일 블록 내 결제 금액은 반드시 1개
             - 거래 확정 여부가 모호해도 “상호명 + 금액”이면 무조건 후보 포함
+            
             """;
 
     /**

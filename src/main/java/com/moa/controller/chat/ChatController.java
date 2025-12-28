@@ -60,12 +60,13 @@ public class ChatController {
 
             if (ChatModeType.RECEIPT.getText().equals(mode)) {
                 AiReceiptResponse response = chatService.sendReceiptMessage(userId, message, image);
-                Long transactionId = transactionService.addTransactionInfo(userId, response.request());
+//                Long transactionId = transactionService.addTransactionInfo(userId, response.request());
 
                 return ResponseEntity.ok(
                         new ChatResponse(
                                 response.message(),
-                                transactionService.getTransaction(userId, transactionId)
+                                response.request()
+//                                transactionService.getTransaction(userId, transactionId)
                         )
                 );
             } else {
