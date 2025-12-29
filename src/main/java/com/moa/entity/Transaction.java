@@ -2,6 +2,9 @@ package com.moa.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -44,6 +47,7 @@ public class Transaction {
             nullable = false,
             foreignKey = @ForeignKey(name = "FK_TRANSACTION_GROUP_TRANSACTION")
     )
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private TransactionGroup transactionGroup;
 
     @Column(name = "CREATED_AT")
