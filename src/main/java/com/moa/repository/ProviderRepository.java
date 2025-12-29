@@ -14,7 +14,7 @@ public interface ProviderRepository extends JpaRepository<Provider, Long> {
     Optional<Provider> findByUserIdAndProvider(Long userId, String provider);
 
     // 사용자 ID로 모든 연결된 소셜 로그인 조회
-    List<Provider> findByUserId(Long userId);
+    Optional<Provider> findByUserId(Long userId);
 
     // 프로바이더별 사용자 목록 조회
     List<Provider> findByProvider(String provider);

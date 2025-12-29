@@ -84,4 +84,23 @@ public class UserProfile {
     public void updateAiChatType(String aiChatType) {
         this.aiChatType = aiChatType;
     }
+
+    public void updateProfile(String nickname, Boolean marketingEnable, Boolean pushEnable,
+                             Boolean voiceEnable, Boolean pictureEnable) {
+        if (nickname != null) {
+            this.nickname = nickname;
+        }
+        if (marketingEnable != null) {
+            this.marketingEnable = marketingEnable;
+        }
+        if (pushEnable != null) {
+            this.pushEnable = pushEnable;
+        }
+        if (voiceEnable != null) {
+            this.voiceEnable = voiceEnable;
+        }
+        if (pictureEnable != null) {
+            this.pictureEnable = pictureEnable;
+        }
+    }
 }

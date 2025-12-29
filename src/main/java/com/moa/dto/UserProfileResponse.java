@@ -8,16 +8,20 @@ public record UserProfileResponse(
         boolean marketingEnable,
         boolean pushEnable,
         boolean voiceEnable,
-        boolean pictureEnable
+        boolean pictureEnable,
+        String userEmail,
+        String provider
 ) {
-    public static UserProfileResponse from(UserProfile profile) {
+    public static UserProfileResponse from(UserProfile profile, String userEmail, String provider) {
         return new UserProfileResponse(
                 profile.getId(),
                 profile.getNickname(),
                 profile.isMarketingEnable(),
                 profile.isPushEnable(),
                 profile.isVoiceEnable(),
-                profile.isPictureEnable()
+                profile.isPictureEnable(),
+                userEmail,
+                provider
         );
     }
 }

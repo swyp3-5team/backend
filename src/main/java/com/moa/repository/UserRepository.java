@@ -18,4 +18,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     // 활성 사용자 목록 조회 (삭제되지 않은)
     List<User> findByDeletedAtIsNull();
+
+    Optional<User> findByUserId(Long userId);
 }

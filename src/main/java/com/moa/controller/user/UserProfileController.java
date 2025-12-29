@@ -44,6 +44,17 @@ public class UserProfileController {
                 .body(userProfileService.getProfile(userId));
     }
 
+    @PutMapping
+    @Operation(summary = "프로필 수정", description = "사용자 프로필을 수정합니다. null이 아닌 필드만 업데이트됩니다.")
+    public ResponseEntity<UserProfileResponse> updateProfile(
+        @CurrentUserId Long userId,
+        @RequestBody UserProfileInitRequest request
+    ){
+        log.info("사용자 {} 프로필 수정 요청", userId);
+        UserProfileResponse response = userProfileService.updateProfile(userId, request);
+        return ResponseEntity.ok(response);
+    }
+
     @PostMapping("/ai-config")
     @Operation(summary = "AI 말투 설정", description = "AI 챗봇의 말투를 설정합니다. EMPATH:공감형, FACT:팩폭형(구현X)")
     public ResponseEntity<String> settingAiChatType(
