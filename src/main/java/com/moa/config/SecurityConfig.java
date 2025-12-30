@@ -58,7 +58,9 @@ public class SecurityConfig {
                     "/oauth2/**",
                     "/login/**",
                     // 토큰 갱신
-                    "/auth/refresh"
+                    "/auth/refresh",
+                    "/api/v1/notices",
+                    "/api/v1/notices/*"
                 ).permitAll()
 
                 // 그 외 모든 요청은 인증 필요
