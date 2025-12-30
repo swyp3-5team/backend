@@ -6,9 +6,6 @@ public record UserProfileResponse(
         Long profileId,
         String nickName,
         boolean marketingEnable,
-        boolean pushEnable,
-        boolean voiceEnable,
-        boolean pictureEnable,
         String userEmail,
         String provider
 ) {
@@ -17,9 +14,6 @@ public record UserProfileResponse(
                 profile.getId(),
                 profile.getNickname(),
                 profile.isMarketingEnable(),
-                profile.isPushEnable(),
-                profile.isVoiceEnable(),
-                profile.isPictureEnable(),
                 userEmail,
                 provider
         );

@@ -51,10 +51,7 @@ public class UserProfileService {
 
         userProfile.updateProfile(
                 request.nickname(),
-                request.marketingEnable(),
-                request.pushEnable(),
-                request.voiceEnable(),
-                request.pictureEnable()
+                request.marketingEnable()
         );
 
         log.info("사용자 {} 프로필 업데이트 완료", userId);

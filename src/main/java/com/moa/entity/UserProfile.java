@@ -32,18 +32,8 @@ public class UserProfile {
     @Column(name = "NICK_NAME", nullable = false, length = 30)
     private String nickname;
 
-    // 수신동의
-    @Column(name = "PUSH_ENABLE", nullable = false)
-    private boolean pushEnable;
-
     @Column(name = "MARKETING_ENABLE",nullable = false)
     private boolean marketingEnable;
-
-    @Column(name = "PICTURE_ENABLE",nullable = false)
-    private boolean pictureEnable;
-
-    @Column(name = "VOICE_ENABLE",nullable = false)
-    private boolean voiceEnable;
 
     @Column(name = "AI_CHAT_TYPE", columnDefinition = "VARCHAR(20) DEFAULT 'EMPATH'")
     private String aiChatType;
@@ -68,10 +58,7 @@ public class UserProfile {
     private UserProfile(User user, UserProfileInitRequest request) {
         this.user = user;
         this.nickname = request.nickname();
-        this.pushEnable = Boolean.TRUE.equals(request.pushEnable());
         this.marketingEnable = Boolean.TRUE.equals(request.marketingEnable());
-        this.voiceEnable = Boolean.TRUE.equals(request.voiceEnable());
-        this.pictureEnable = Boolean.TRUE.equals(request.pictureEnable());
         this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
         this.aiChatType = AiChatEnum.EMPATH.getText();
@@ -85,22 +72,12 @@ public class UserProfile {
         this.aiChatType = aiChatType;
     }
 
-    public void updateProfile(String nickname, Boolean marketingEnable, Boolean pushEnable,
-                             Boolean voiceEnable, Boolean pictureEnable) {
+    public void updateProfile(String nickname, Boolean marketingEnable) {
         if (nickname != null) {
             this.nickname = nickname;
         }
         if (marketingEnable != null) {
             this.marketingEnable = marketingEnable;
-        }
-        if (pushEnable != null) {
-            this.pushEnable = pushEnable;
-        }
-        if (voiceEnable != null) {
-            this.voiceEnable = voiceEnable;
-        }
-        if (pictureEnable != null) {
-            this.pictureEnable = pictureEnable;
         }
     }
 }
