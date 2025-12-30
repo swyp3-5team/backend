@@ -25,13 +25,13 @@ public class SwaggerConfig {
         localServer.setUrl("http://localhost:8080");
         localServer.setDescription("로컬 개발 서버");
 
-        Server domainServerHttp = new Server();
-        domainServerHttp.setUrl("http://cloverly.site:8080");
-        domainServerHttp.setDescription("클로버리 서버 도메인");
+        Server prodServerHttp = new Server();
+        prodServerHttp.setUrl("https://cloverly.site");
+        prodServerHttp.setDescription("클로버리 운영 서버 도메인");
 
-        Server testServer = new Server();
-        testServer.setUrl("http://49.50.133.51:8080");
-        testServer.setDescription("NCP 테스트 서버 (IP)");
+        Server devServerHttp = new Server();
+        devServerHttp.setUrl("http://api.cloverly.site:8080");
+        devServerHttp.setDescription("클로버리 개발 서버 도메인");
 
         SecurityScheme securityScheme = new SecurityScheme()
                 .type(SecurityScheme.Type.HTTP)
@@ -49,7 +49,7 @@ public class SwaggerConfig {
 
         return new OpenAPI()
                 .info(info)
-                .servers(List.of(domainServerHttp, localServer, testServer))
+                .servers(List.of(devServerHttp, prodServerHttp, localServer))
                 .addSecurityItem(securityRequirement)
                 .schemaRequirement("BearerAuth", securityScheme)
                 ;
