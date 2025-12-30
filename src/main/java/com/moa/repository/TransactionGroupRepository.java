@@ -1,5 +1,7 @@
 package com.moa.repository;
 
+import com.moa.entity.PaymentMethod;
+import com.moa.entity.TransactionEmotion;
 import com.moa.entity.TransactionGroup;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -42,5 +44,30 @@ public interface TransactionGroupRepository extends JpaRepository<TransactionGro
             @Param("userId") Long userId,
             @Param("year") int year,
             @Param("month") int month
+    );
+
+    /**
+     * 거래내역 검색 (월 단위 + paymentMemo, payment, emotion, categoryId 필터링)
+     */
+    @Query("SELECT DISTINCT tg FROM TransactionGroup tg " +
+           "LEFT JOIN FETCH tg.transactions t " +
+           "LEFT JOIN FETCH t.category c " +
+           "WHERE tg.user.id = :userId " +
+           "AND tg.isDeleted = false " +
+           "AND YEAR(tg.transactionDate) = :year " +
+           "AND MONTH(tg.transactionDate) = :month " +
+           "AND (:paymentMemo IS NULL OR :paymentMemo = '' OR tg.paymentMemo LIKE CONCAT('%', CAST(:paymentMemo AS string), '%')) " +
+           "AND (:payment IS NULL OR tg.payment = :payment) " +
+           "AND (:emotion IS NULL OR tg.emotion = :emotion) " +
+           "AND (:categoryId IS NULL OR c.id = :categoryId) " +
+           "ORDER BY tg.transactionDate DESC")
+    List<TransactionGroup> searchTransactions(
+            @Param("userId") Long userId,
+            @Param("year") int year,
+            @Param("month") int month,
+            @Param("paymentMemo") String paymentMemo,
+            @Param("payment") PaymentMethod payment,
+            @Param("emotion") TransactionEmotion emotion,
+            @Param("categoryId") Long categoryId
     );
 }

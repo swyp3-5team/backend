@@ -51,14 +51,22 @@ public class TransactionController {
         }
     }
 
-    @Operation(summary = "지출 기록 연-월 조회", description = "지출 기록을 연-월 기준으로 조회하는 API")
+    @Operation(summary = "지출 기록 연-월 조회",
+        description = "지출 기록을 연-월 기준으로 조회하는 API. paymentMemo, payment, emotion, categoryId로 필터링 가능합니다.")
     @GetMapping
     public ResponseEntity<List<TransactionGroupInfo>> getTransactionsByYearMonth(
             @CurrentUserId Long userId,
-            @RequestParam YearMonth yearMonth
+            @RequestParam YearMonth yearMonth,
+            @RequestParam(required = false) String paymentMemo,
+            @RequestParam(required = false) String payment,
+            @RequestParam(required = false) String emotion,
+            @RequestParam(required = false) Long categoryId
     ) {
+        log.info("거래 내역 조회 - userId: {}, yearMonth: {}, paymentMemo: {}, payment: {}, emotion: {}, categoryId: {}",
+                userId, yearMonth, paymentMemo, payment, emotion, categoryId);
+
         return ResponseEntity.ok().body(
-                transactionService.getTransactionsByYearMonth(userId, yearMonth)
+                transactionService.searchTransactions(userId, yearMonth, paymentMemo, payment, emotion, categoryId)
         );
     }
 

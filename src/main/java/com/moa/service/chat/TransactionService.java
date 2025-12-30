@@ -104,28 +104,6 @@ public class TransactionService {
         return transactionGroup.getId();
     }
 
-    /*
-     * 2025-12 형태의 날짜 입력을 기반으로 해당 월의 기록을 조회
-     * */
-    @Transactional(readOnly = true)
-    public List<TransactionGroupInfo> getTransactionsByYearMonth(Long userId, YearMonth yearMonth) {
-        LocalDate start = yearMonth.atDay(1);
-        LocalDate end = yearMonth.atEndOfMonth();
-
-        List<TransactionGroup> trGroupList = transactionGroupRepository.findByUser_UserIdAndTransactionDateBetween(userId, start, end);
-
-        if (trGroupList.isEmpty()) {
-            return null;
-        }
-
-        return trGroupList.stream().map(
-                        trGroup -> TransactionGroupInfo.from(
-                                trGroup,
-                                trGroup.getTransactions().stream().map(
-                                        TransactionInfo::from
-                                ).toList()))
-                .toList();
-    }
 
     /**
      * Pattern 문자열을 CategoryType으로 변환
@@ -198,6 +176,53 @@ public class TransactionService {
         transactionGroupRepository.delete(transactionGroup);
 
         log.info("사용자 {}의 거래내역 {} 삭제 완료", userId, transactionId);
+    }
+
+    /**
+     * 거래내역 검색
+     */
+    public List<TransactionGroupInfo> searchTransactions(
+            Long userId,
+            YearMonth yearMonth,
+            String paymentMemo,
+            String payment,
+            String emotion,
+            Long categoryId
+    ) {
+        // String을 enum으로 변환
+        PaymentMethod paymentMethod = null;
+        if (payment != null && !payment.trim().isEmpty()) {
+            try {
+                paymentMethod = PaymentMethod.valueOf(payment.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("잘못된 payment 값: {}", payment);
+            }
+        }
+
+        TransactionEmotion transactionEmotion = null;
+        if (emotion != null && !emotion.trim().isEmpty()) {
+            try {
+                transactionEmotion = TransactionEmotion.valueOf(emotion.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.warn("잘못된 emotion 값: {}", emotion);
+            }
+        }
+
+        int year = yearMonth.getYear();
+        int month = yearMonth.getMonthValue();
+
+        List<TransactionGroup> results = transactionGroupRepository.searchTransactions(
+                userId, year, month, paymentMemo, paymentMethod, transactionEmotion, categoryId
+        );
+
+        log.info("거래내역 검색 완료 - userId: {}, yearMonth: {}, 검색 결과: {}건", userId, yearMonth, results.size());
+
+        return results.stream()
+                .map(tg -> TransactionGroupInfo.from(
+                        tg,
+                        tg.getTransactions().stream().map(TransactionInfo::from).toList()
+                ))
+                .toList();
     }
 
     /**
