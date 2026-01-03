@@ -13,6 +13,5 @@ public record TransactionDetailRequest(
                 item.getName(),
                 category
         );
-
     }
 }

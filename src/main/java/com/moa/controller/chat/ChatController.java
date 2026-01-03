@@ -2,7 +2,7 @@ package com.moa.controller.chat;
 
 import com.moa.annotation.CurrentUserId;
 import com.moa.dto.chat.ChatHistoryResponse;
-import com.moa.dto.chat.ChatResponse;
+import com.moa.dto.chat.ReceiptResponse;
 import com.moa.entity.ChatModeType;
 import com.moa.exception.InvalidImageException;
 import com.moa.reponse.AiReceiptResponse;
@@ -39,7 +39,7 @@ public class ChatController {
     @Operation(summary = "AI 챗봇에게 메시지 전송",
             description = "텍스트 메시지와 영수증 이미지를 전송합니다. (이미지는 선택)" +
                     "mode: RECEIPT(내역모드) or CHAT(대화모드)")
-    public ResponseEntity<ChatResponse> sendMessage(
+    public ResponseEntity<ReceiptResponse> sendMessage(
             @CurrentUserId Long userId,
             @RequestPart(value = "message", required = false) String message,
             @RequestPart("mode") String mode,
@@ -48,7 +48,7 @@ public class ChatController {
         if (mode == null || mode.isEmpty() || !(ChatModeType.RECEIPT.getText().equals(mode) || ChatModeType.CHAT.getText().equals(mode))) {
             String errorMessage = "mode는 'RECEIPT' 또는 'CHAT'이어야 합니다.";
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ChatResponse.builder().message(errorMessage).build());
+                    .body(ReceiptResponse.builder().message(errorMessage).build());
         }
 
         if (image != null) {
@@ -63,20 +63,20 @@ public class ChatController {
 //                Long transactionId = transactionService.addTransactionInfo(userId, response.request());
 
                 return ResponseEntity.ok(
-                        new ChatResponse(
+                        new ReceiptResponse(
                                 response.message(),
                                 response.request()
 //                                transactionService.getTransaction(userId, transactionId)
                         )
                 );
             } else {
-                ChatResponse response = chatService.sendMessage(userId, message, mode, image);
+                ReceiptResponse response = chatService.sendMessage(userId, message, mode, image);
                 return ResponseEntity.ok(response);
             }
         } catch (InvalidImageException e) {
             log.warn("이미지 검증 실패: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ChatResponse.builder().message(e.getMessage()).build());
+                    .body(ReceiptResponse.builder().message(e.getMessage()).build());
         } catch (Exception e) {
             log.error("메시지 전송 실패: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);

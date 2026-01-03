@@ -152,9 +152,10 @@ public class ClovaStudioService {
     }
 
     public AiReceiptResponse extractTransaction(String content) {
+        log.info("Clova JSON (head 1000): {}",
+                content != null ? content.substring(0, Math.min(1000, content.length())) : "null");
         String json = cleanUpJson(content);
-        log.info("Clova receipt cleaned JSON (head 1000): {}",
-                json != null ? json.substring(0, Math.min(1000, json.length())) : "null");
+
         AiJson aijson = jsonToDto(json);
         log.info("Clova receipt parsed items size: {}",
                 aijson.getItems() != null ? aijson.getItems().size() : 0);
@@ -187,7 +188,6 @@ public class ClovaStudioService {
                 null,
                 totalAmount,
                 TransactionEmotion.from(aijson.getEmotion()).name(),
-                "EXPENSE",
                 transactions
         );
 

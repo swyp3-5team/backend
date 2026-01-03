@@ -10,7 +10,6 @@ public record AiTransactionResponse(
         String paymentMemo,
         Long totalAmount,
         String emotion,
-        String type,
         List<TransactionDetailRequest> transactions
 ) {
 }

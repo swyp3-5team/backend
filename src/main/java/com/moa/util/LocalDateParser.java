@@ -19,13 +19,15 @@ public class LocalDateParser {
 
     public static LocalDate parseLocalDate(String value) {
         if (value == null || value.isBlank()) {
-            return null;
+            return LocalDate.now();
         }
 
         for (DateTimeFormatter formatter : FORMATTERS) {
             try {
                 return LocalDate.parse(value, formatter);
-            } catch (DateTimeParseException ignored) {}
+            } catch (DateTimeParseException ignored) {
+                return LocalDate.now();
+            }
         }
 
         throw new IllegalArgumentException(

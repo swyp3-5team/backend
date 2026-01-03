@@ -63,9 +63,6 @@ public class TransactionService {
         // 감정
         TransactionEmotion emotion = parseEmotion(request.emotion());
 
-        // 지출/수입 패턴
-        CategoryType categoryType = parseCategoryType(request.type());
-
         TransactionGroup transactionGroup = TransactionGroup.builder()
                 .user(user)
                 .transactionDate(transactionDate)
@@ -81,7 +78,7 @@ public class TransactionService {
         // 묶음 내부를 순회하며 Transaction 생성
         List<Transaction> transactionList = transactions.stream().map(
                 (tr) -> {
-                    Category category = findOrCreateCategory(tr.categoryName(), categoryType);
+                    Category category = findCategory(tr.categoryName());
 
                     Transaction transaction =  Transaction.builder()
                             .name(tr.name())
@@ -149,7 +146,7 @@ public class TransactionService {
             if (transactionInfo == null) {
                 return;
             }
-            Category category = findOrCreateCategory(transactionInfo.categoryName(), CategoryType.EXPENSE);
+            Category category = findCategory(transactionInfo.categoryName());
             transactionRepository.findById(transactionInfo.transactionId()).ifPresent(
                     tr -> {
                         tr.update(
@@ -228,18 +225,18 @@ public class TransactionService {
     /**
      * Category 찾기 또는 기타로 설정
      */
-    private Category findOrCreateCategory(String content, CategoryType type) {
+    private Category findCategory(String content) {
         // content가 null이거나 빈 문자열이면 "기타"로 설정
         final String categoryName = (content == null || content.trim().isEmpty()) ? "기타" : content;
 
         // 기존 카테고리 찾기 (이름과 타입으로)
-        Optional<Category> category = categoryRepository.findByNameAndType(categoryName, type);
+        Optional<Category> category = categoryRepository.findByName(categoryName);
 
         if (category.isPresent()) {
             return category.get();
         }
 
         // 없으면 "기타" 카테고리로 대체
-        return categoryRepository.findByNameAndType("기타", type).get();
+        return categoryRepository.findByName("기타").get();
     }
 }

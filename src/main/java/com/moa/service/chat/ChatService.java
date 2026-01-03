@@ -3,7 +3,7 @@ package com.moa.service.chat;
 import com.moa.config.chat.ClovaStudioConfig;
 import com.moa.dto.Hcx007RequestDto;
 import com.moa.dto.chat.ChatHistoryResponse;
-import com.moa.dto.chat.ChatResponse;
+import com.moa.dto.chat.ReceiptResponse;
 import com.moa.dto.chat.clova.ClovaStudioRequest;
 import com.moa.entity.AiChattingLog;
 import com.moa.entity.CharacterEmotionType;
@@ -53,7 +53,7 @@ public class ChatService {
     private final OcrService ocrService;
 
     @Transactional
-    public ChatResponse sendMessage(Long userId, String userMessage, String mode, MultipartFile image) {
+    public ReceiptResponse sendMessage(Long userId, String userMessage, String mode, MultipartFile image) {
         try {
             // 1. 사용자 확인
             User user = userRepository.findById(userId)
@@ -99,7 +99,7 @@ public class ChatService {
             List<ClovaStudioRequest.Message> messages = new ArrayList<>();
 
             String systemPrompt = clovaConfig.getSystemPrompt();
-
+            log.info("RAG CONTEXT: {}", ragContext);
             // 시스템 프롬프트 추가
             messages.add(ClovaStudioRequest.Message.builder()
                     .role("system")
@@ -115,9 +115,9 @@ public class ChatService {
             // 7. Clova Studio API 호출
             String aiResponse = clovaStudioService.sendMessage(messages);
 
-            // 8. JSON 파싱 (거래내역 추출)
-            ChatResponse cleanChatResponse = extractTransactionGroupInfo(aiResponse);
-//            TransactionGroupInfo transactionGroupInfo = cleanChatResponse != null ? cleanChatResponse.getTransactionInfo() : null;
+//            // 8. JSON 파싱 (거래내역 추출)
+//            ChatResponse cleanReceiptResponse = extractTransactionGroupInfo(aiResponse);
+//            TransactionGroupInfo transactionGroupInfo = cleanReceiptResponse != null ? cleanReceiptResponse.getTransactionInfo() : null;
 
             // 9. AI 응답 임베딩 벡터 생성 및 저장
             List<Double> aiEmbedding = clovaStudioService.embedText(aiResponse);
@@ -133,11 +133,9 @@ public class ChatService {
             assistantLog = chattingLogRepository.save(assistantLog);
 
             log.info("채팅 응답 완료 - chattingId: {}, 거래내역: {}");
-//                    assistantLog.getChattingId(), transactionInfo != null ? "있음" : "없음");
 
-            return ChatResponse.builder()
-                    .message(cleanChatResponse == null ? aiResponse : cleanChatResponse.getMessage())
-//                    .transactionInfo(transactionInfo)
+            return ReceiptResponse.builder()
+                    .message(aiResponse)
                     .build();
 
         } catch (Exception e) {
@@ -188,15 +186,16 @@ public class ChatService {
 
         prompts.add(systemPrompt);
         StringBuilder userContent = new StringBuilder();
-        if (OcrText != null && !OcrText.isBlank()) {
-            userContent.append("[OCR RESULT]\n")
-                    .append(OcrText)
+        if (text != null && !text.isBlank()) {
+            userContent
+                    .append(text)
                     .append("\n\n");
         }
-
-        if (text != null && !text.isBlank()) {
-            userContent.append("[USER INPUT]\n")
-                    .append(text);
+        if (OcrText != null && !OcrText.isBlank()) {
+            userContent
+                    .append("거래 내역\n")
+                    .append(OcrText)
+                    .append("\n\n");
         }
 
         prompts.add(
@@ -215,9 +214,9 @@ public class ChatService {
                 .messages(prompts)
                 .topP(0.8)
                 .topK(0)
-                .maxCompletionTokens(6000)
-                .temperature(0.0)
-                .repetitionPenalty(1.1)
+                .maxCompletionTokens(10000)
+                .temperature(0.3)
+                .repetitionPenalty(1.0)
                 .thinking(Hcx007RequestDto.Thinking.builder()
                         .effort("none")
                         .build())
@@ -230,7 +229,7 @@ public class ChatService {
     }
 
 
-    private ChatResponse extractTransactionGroupInfo(String aiResponse) {
+    private ReceiptResponse extractTransactionGroupInfo(String aiResponse) {
         int beginIdx = -1;
         String upperAiResponse = aiResponse.toLowerCase();
         try {

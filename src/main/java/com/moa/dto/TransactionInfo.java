@@ -7,7 +7,8 @@ public record TransactionInfo(
         String name,
         Long amount,
         Long categoryId,
-        String categoryName
+        String categoryName,
+        String type
 ) {
     public static TransactionInfo from(Transaction tr) {
         return new TransactionInfo(
@@ -15,7 +16,8 @@ public record TransactionInfo(
                 tr.getName(),
                 tr.getAmount(),
                 tr.getCategory().getId(),
-                tr.getCategory().getName()
+                tr.getCategory().getName(),
+                tr.getCategory().getType().name()
         );
     }
     public static Long parseAmount(String amount) {

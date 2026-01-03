@@ -1,4 +1,4 @@
-package com.moa.service;
+package com.moa.dto;
 
 import java.util.List;
 

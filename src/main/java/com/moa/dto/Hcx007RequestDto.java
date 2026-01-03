@@ -68,7 +68,25 @@ public class Hcx007RequestDto {
         public static ResponseFormat createResponseFormat(){
             Map<String, Object> categoryProperty = Map.of(
                     "type", "string",
-                    "enum", List.of("식비", "의약품", "의류", "생필품", "화장품", "생활용품", "기타"),
+                    "enum", List.of(
+                            "식비",
+                            "카페",
+                            "배달",
+                            "술",
+                            "교통",
+                            "구독",
+                            "쇼핑",
+                            "미용",
+                            "취미",
+                            "주거",
+                            "건강",
+                            "자기계발",
+                            "반려동물",
+                            "생활용품",
+                            "기타",
+                            "월급",
+                            "용돈"
+                    ),
                     "description", "상품 카테고리 분류"
             );
 

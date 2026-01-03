@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ChatResponse {
+public class ReceiptResponse {
 
     private String message;
     private AiTransactionResponse transactionInfo;

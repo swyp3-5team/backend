@@ -9,7 +9,6 @@ public record TransactionCreateRequest(
     String payment,
     String paymentMemo,
     String emotion,
-    String type,
     List<TransactionDetailRequest> transactions
 ) {
 }

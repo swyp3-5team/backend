@@ -1,6 +1,8 @@
 package com.moa.service;
 
 import com.moa.config.chat.ClovaStudioConfig;
+import com.moa.dto.ClovaOcrRequest;
+import com.moa.dto.ClovaOcrResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
