@@ -7,3 +7,5 @@ src/main/resources/application-dev.properties
 .idea
 /target/
 *.p8
+cd.yml
+ci.yml
