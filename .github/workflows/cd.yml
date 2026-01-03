@@ -1,12 +1,12 @@
 name: Java CD
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "prod" ]
   pull_request:
     types:
       - closed
     branches:
-      - main
+      - prod
 
 
 jobs:
@@ -30,9 +30,9 @@ jobs:
       - name: Copy JAR to server
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ${{secrets.SSH_HOST}}
-          username: ${{secrets.SSH_USER}}
-          key: ${{secrets.SSH_KEY}}
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
           source: target/moa-app-1.0.0.jar
           target: /app
           strip_components: 1
@@ -42,9 +42,9 @@ jobs:
       - name: Restart application
         uses: appleboy/ssh-action@v0.1.7
         with:
-          host: ${{secrets.SSH_HOST}}
-          username: ${{secrets.SSH_USER}}
-          key: ${{secrets.SSH_KEY}}
+          host: ${{ secrets.PROD_SSH_HOST }}
+          username: ${{ secrets.PROD_SSH_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
           script: |
             cd /app
             ./stopServer.sh
