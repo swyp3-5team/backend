@@ -16,8 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static com.moa.entity.TransactionEmotion.parseEmotion;
 
@@ -143,22 +144,44 @@ public class TransactionService {
                 () -> new RuntimeException("거래 내역이 없습니다.")
         );
         transactionGroup.update(transactionGroupInfo);
-        for (TransactionInfo transactionInfo : transactionGroupInfo.transactionInfoList()) {
-            if (transactionInfo == null) {
-                return;
+        Set<Long> requestIds = transactionGroupInfo.transactionInfoList().stream()
+                .map(TransactionInfo::transactionId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        transactionGroup.getTransactions().removeIf(
+                transaction -> !requestIds.contains(transaction.getId())
+        );
+
+        Map<Long, TransactionInfo> infoMap =
+                transactionGroupInfo.transactionInfoList().stream()
+                        .filter(info -> info.transactionId() != null)
+                        .collect(Collectors.toMap(
+                                TransactionInfo::transactionId,
+                                Function.identity()
+                        ));
+
+
+        for(Transaction transaction : transactionGroup.getTransactions()){
+            TransactionInfo info = infoMap.get(transaction.getId());
+            if (info != null) {
+                Category category = findCategory(info.categoryName());
+                transaction.update(info.name(), info.amount(), category);
             }
-            Category category = findCategory(transactionInfo.categoryName());
-            transactionRepository.findById(transactionInfo.transactionId()).ifPresent(
-                    tr -> {
-                        tr.update(
-                                transactionInfo.name(),
-                                transactionInfo.amount(),
-                                category
-                        );
-                    }
-            );
         }
 
+        transactionGroupInfo.transactionInfoList().stream()
+                .filter(info -> info.transactionId() == null)
+                .forEach(info -> {
+                    Category category = findCategory(info.categoryName());
+                    Transaction newTransaction = Transaction.builder()
+                            .name(info.name())
+                            .amount(info.amount())
+                            .category(category)
+                            .transactionGroup(transactionGroup)
+                            .build();
+                    transactionGroup.addTransaction(newTransaction);
+                });
         log.info("사용자 {}의 거래내역 {} 수정 완료", userId, transactionGroupId);
     }
 
