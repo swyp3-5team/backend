@@ -14,7 +14,7 @@ import java.util.Optional;
 public interface TransactionGroupRepository extends JpaRepository<TransactionGroup, Long> {
     List<TransactionGroup> findByUser_UserIdAndTransactionDateBetween(Long userId, LocalDate start, LocalDate end);
 
-    Optional<TransactionGroup> findByIdAndUser_UserId(Long userId, Long transactionGroupId);
+    Optional<TransactionGroup> findByIdAndUser_UserId(Long transactionGroupId, Long userId);
 
     /**
      * 특정 사용자의 특정 월 거래그룹 조회 (지출만)

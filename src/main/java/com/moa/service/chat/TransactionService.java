@@ -139,7 +139,7 @@ public class TransactionService {
      */
     @Transactional
     public void updateTransaction(Long userId, Long transactionGroupId, TransactionGroupInfo transactionGroupInfo) {
-        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(userId, transactionGroupId).orElseThrow(
+        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(transactionGroupId, userId).orElseThrow(
                 () -> new RuntimeException("거래 내역이 없습니다.")
         );
         for (TransactionInfo transactionInfo : transactionGroupInfo.transactionInfoList()) {
@@ -166,7 +166,7 @@ public class TransactionService {
      */
     @Transactional
     public void deleteTransaction(Long userId, Long transactionId) {
-        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(userId, transactionId).orElseThrow(
+        TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(transactionId, userId).orElseThrow(
                 () -> new RuntimeException("존재하지 않는 지출 기록입니다.")
         );
 
