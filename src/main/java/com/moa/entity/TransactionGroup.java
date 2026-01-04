@@ -1,5 +1,6 @@
 package com.moa.entity;
 
+import com.moa.dto.TransactionGroupInfo;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.OnDelete;
@@ -75,5 +76,13 @@ public class TransactionGroup {
 
     public void addTransaction(Transaction transaction) {
         transactions.add(transaction);
+    }
+
+    public void update(TransactionGroupInfo transactionGroupInfo) {
+        this.transactionDate = transactionGroupInfo.transactionDate();
+        this.place = transactionGroupInfo.place();
+        this.payment = PaymentMethod.from(transactionGroupInfo.payment());
+        this.paymentMemo = transactionGroupInfo.paymentMemo();
+        this.emotion = TransactionEmotion.parseEmotion(transactionGroupInfo.emotion());
     }
 }

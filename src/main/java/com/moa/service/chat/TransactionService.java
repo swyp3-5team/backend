@@ -142,6 +142,7 @@ public class TransactionService {
         TransactionGroup transactionGroup = transactionGroupRepository.findByIdAndUser_UserId(transactionGroupId, userId).orElseThrow(
                 () -> new RuntimeException("거래 내역이 없습니다.")
         );
+        transactionGroup.update(transactionGroupInfo);
         for (TransactionInfo transactionInfo : transactionGroupInfo.transactionInfoList()) {
             if (transactionInfo == null) {
                 return;
