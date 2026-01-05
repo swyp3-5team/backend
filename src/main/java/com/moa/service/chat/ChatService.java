@@ -60,40 +60,40 @@ public class ChatService {
                     .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
             log.info("채팅 메시지 전송 - userId: {}, message: {}", userId, userMessage);
-
-            // 2. 사용자 메시지 임베딩 벡터 생성 (RAG용)
-            List<Double> userEmbedding = clovaStudioService.embedText(userMessage);
-            String embeddingVectorStr = convertEmbeddingToString(userEmbedding);
-
-            // 3. 사용자 메시지 저장 (임베딩 벡터 포함)
-            AiChattingLog userLog = AiChattingLog.builder()
-                    .user(user)
-                    .chatContent(userMessage)
-                    .chatType("USER")
-                    .embeddingVector(embeddingVectorStr)
-                    .build();
-            userLog = chattingLogRepository.save(userLog);
-
-            // 4. RAG: 과거 대화 중 유사한 내용 검색 (벡터 유사도 기반)
-            List<AiChattingLog> similarChats = new ArrayList<>();
-            if (userEmbedding != null && !userEmbedding.isEmpty()) {
-                log.info("RAG 벡터 검색 시작 - userId: {}", userId);
-                similarChats = chattingLogRepository.findSimilarChats(userId, embeddingVectorStr, 5);
-                log.info("유사한 과거 대화 {}개 발견", similarChats.size());
-            }
-
-            // 5: 유사한 과거 대화가 있으면 컨텍스트에 추가
             StringBuilder ragContext = null;
-            if (!similarChats.isEmpty()) {
-                ragContext = new StringBuilder("### 참고: 과거 유사한 대화 내역\n");
-                for (AiChattingLog chat : similarChats) {
-                    if (!chat.getChattingId().equals(userLog.getChattingId())) {
-                        ragContext.append("- ").append(chat.getChatContent()).append("\n");
-                    }
-                }
-                log.info("유사 대화 내역 : {}", ragContext.toString());
-            }
+            List<AiChattingLog> similarChats = new ArrayList<>();
+            // 2. 사용자 메시지 임베딩 벡터 생성 (RAG용)
+            if(userMessage != null) {
+                List<Double> userEmbedding = clovaStudioService.embedText(userMessage);
+                String embeddingVectorStr = convertEmbeddingToString(userEmbedding);
+                // 3. 사용자 메시지 저장 (임베딩 벡터 포함)
+                AiChattingLog userLog = AiChattingLog.builder()
+                        .user(user)
+                        .chatContent(userMessage)
+                        .chatType("USER")
+                        .embeddingVector(embeddingVectorStr)
+                        .build();
+                userLog = chattingLogRepository.save(userLog);
 
+                // 4. RAG: 과거 대화 중 유사한 내용 검색 (벡터 유사도 기반)
+
+                if (userEmbedding != null && !userEmbedding.isEmpty()) {
+                    log.info("RAG 벡터 검색 시작 - userId: {}", userId);
+                    similarChats = chattingLogRepository.findSimilarChats(userId, embeddingVectorStr, 5);
+                    log.info("유사한 과거 대화 {}개 발견", similarChats.size());
+                }
+                // 5: 유사한 과거 대화가 있으면 컨텍스트에 추가
+
+                if (!similarChats.isEmpty()) {
+                    ragContext = new StringBuilder("### 참고: 과거 유사한 대화 내역\n");
+                    for (AiChattingLog chat : similarChats) {
+                        if (!chat.getChattingId().equals(userLog.getChattingId())) {
+                            ragContext.append("- ").append(chat.getChatContent()).append("\n");
+                        }
+                    }
+                    log.info("유사 대화 내역 : {}", ragContext.toString());
+                }
+            }
 
             // 6. 메시지 리스트 구성
             List<ClovaStudioRequest.Message> messages = new ArrayList<>();
@@ -304,15 +304,17 @@ public class ChatService {
                     .role("user")
                     .content(text)
                     .build();
+
         } else {
             // 텍스트 + 이미지 (멀티모달)
             List<ClovaStudioRequest.MessageContentPart> contentParts = new ArrayList<>();
-
-            // 텍스트 파트 추가
-            contentParts.add(ClovaStudioRequest.MessageContentPart.builder()
-                    .type("text")
-                    .text(text)
-                    .build());
+            if(text != null) {
+                // 텍스트 파트 추가
+                contentParts.add(ClovaStudioRequest.MessageContentPart.builder()
+                        .type("text")
+                        .text(text)
+                        .build());
+            }
 
             // 이미지 파트 추가 (Base64 변환)
             String base64Image = convertImageToBase64(image);
