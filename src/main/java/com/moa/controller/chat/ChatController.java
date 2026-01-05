@@ -70,6 +70,13 @@ public class ChatController {
                         )
                 );
             } else {
+                if(image == null && message == null){
+                    return ResponseEntity.ok(
+                            ReceiptResponse.builder()
+                                    .message("이미지나 메시지 중 하나는 필요해.")
+                                    .build()
+                    );
+                }
                 ReceiptResponse response = chatService.sendMessage(userId, message, mode, image);
                 return ResponseEntity.ok(response);
             }
