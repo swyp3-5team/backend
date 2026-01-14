@@ -1,6 +1,7 @@
 package com.moa.controller.finance;
 
 import com.moa.annotation.CurrentUserId;
+import com.moa.dto.MonthlyCategoryExpenseWithGroupResponse;
 import com.moa.dto.response.MonthlyCategoryExpenseResponse;
 import com.moa.dto.response.MonthlyEmotionPercentageResponse;
 import com.moa.dto.response.MonthlyEmotionStatisticsResponse;
@@ -12,7 +13,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
@@ -63,6 +67,29 @@ public class StatisticsController {
                     .body(Map.of("error", "월간 카테고리별 지출 조회 중 오류가 발생했습니다."));
         }
     }
+
+    @GetMapping("/transcations/{date}/{categoryId}")
+    @Operation(summary = "월간 총 지출을 특정 카테고리에 대해 조회")
+    public ResponseEntity getMonthlyExpenseByCategoryId(
+            @CurrentUserId Long userId,
+            @PathVariable String date,
+            @PathVariable Long categoryId
+    ) {
+        try {
+            log.info("사용자 {} 월간 지출 카테고리 조회 요청 : {}", userId, date);
+            List<MonthlyCategoryExpenseWithGroupResponse> response = statisticsService.getMonthlyExpenseByCategoryId(userId, date, categoryId);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException ie) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", ie.getMessage()));
+        } catch (Exception e) {
+            log.error("월간 지출 기록 조회 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "월간 지출 기록 조회 중 오류가 발생했습니다."));
+        }
+
+    }
+
 
     @GetMapping("/emotion/{date}")
     @Operation(summary = "월간 감정 통계 조회", description = "특정 월의 감정별 거래 건수 및 총 금액을 조회합니다. date 형식: YYYY-MM (예: 2025-01)")

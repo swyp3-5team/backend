@@ -1,5 +1,6 @@
 package com.moa.service;
 
+import com.moa.dto.MonthlyCategoryExpenseWithGroupResponse;
 import com.moa.dto.response.MonthlyCategoryExpenseResponse;
 import com.moa.dto.response.MonthlyEmotionPercentageResponse;
 import com.moa.dto.response.MonthlyEmotionStatisticsResponse;
@@ -75,6 +76,18 @@ public class StatisticsService {
 
         log.info("사용자 {} 의 {} 카테고리별 지출: {} 개 카테고리", userId, date, response.size());
         return response;
+    }
+
+    /*
+     * 월간 지출 결제 기록 카테고리 별 조회(Group Emotion, Payment 포함)
+     * */
+    public List<MonthlyCategoryExpenseWithGroupResponse> getMonthlyExpenseByCategoryId(Long userId, String date, Long categoryId) {
+        validateDateFormat(date);
+        YearMonth yearMonth = YearMonth.parse(date, DateTimeFormatter.ofPattern("yyyy-MM"));
+        int year = yearMonth.getYear();
+        int monthValue = yearMonth.getMonthValue();
+
+        return transactionGroupRepository.findMonthlyTransactionWithGroupByCategoryIdAndUserId(userId,categoryId,year,monthValue);
     }
 
     /**
