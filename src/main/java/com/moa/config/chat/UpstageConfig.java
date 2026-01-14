@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 public class UpstageConfig {
 
-    @Value("${UPSTAGE_OCR_SECRET_KEY}")
+    @Value("${UPSTAGE_SECRET_KEY}")
     private String key;
 
     private String ocrUri = "https://api.upstage.ai/v1/document-digitization";
