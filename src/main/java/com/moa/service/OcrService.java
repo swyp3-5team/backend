@@ -1,13 +1,17 @@
 package com.moa.service;
 
 import com.moa.config.chat.ClovaStudioConfig;
+import com.moa.config.chat.UpstageConfig;
 import com.moa.dto.ClovaOcrRequest;
 import com.moa.dto.ClovaOcrResponse;
+import com.moa.dto.UpstageOcrResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
@@ -22,7 +26,95 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class OcrService {
     private final ClovaStudioConfig studioConfig;
+    private final UpstageConfig upstageConfig;
     private final WebClient webClient = WebClient.builder().build();
+
+    public String upstageOcr(MultipartFile image) {
+
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        builder.part("document", image.getResource())
+                .filename(image.getOriginalFilename())
+                .contentType(image.getContentType() != null ?
+                        MediaType.parseMediaType(image.getContentType()) :
+                        MediaType.APPLICATION_OCTET_STREAM);
+
+        builder.part("model", "ocr");
+
+        UpstageOcrResponse ocrResponse = webClient.post()
+                .uri(upstageConfig.getOcrUri().trim())
+                .header("Authorization", "Bearer " + upstageConfig.getKey().trim())
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(builder.build()))
+                .retrieve()
+                .bodyToMono(UpstageOcrResponse.class)
+                .block();
+
+        if (ocrResponse == null || ocrResponse.pages() == null || ocrResponse.pages().isEmpty()) {
+            return "";
+        }
+
+        List<UpstageOcrResponse.Word> words = ocrResponse.pages().get(0).words();
+        return sortAndProcessUpstage(words);
+    }
+
+    private String sortAndProcessUpstage(List<UpstageOcrResponse.Word> words) {
+        if (words == null || words.isEmpty()) return "";
+
+        // 먼저 confidence 필터링
+        List<UpstageOcrResponse.Word> valid = words.stream()
+                .filter(w -> w.confidence() > 0.6)
+                .collect(Collectors.toList());
+
+        // Y축 기준 정렬
+        valid.sort(Comparator.comparingDouble(w -> getCenterYUp(w.boundingBox())));
+
+        StringBuilder result = new StringBuilder();
+        List<UpstageOcrResponse.Word> current = new ArrayList<>();
+
+        double lastCY = -1, lastH = 0;
+
+        for (UpstageOcrResponse.Word w : valid) {
+            double cy = getCenterYUp(w.boundingBox());
+            double h = getHeightUp(w.boundingBox());
+
+            if (current.isEmpty() || Math.abs(cy - lastCY) < lastH * 0.6) {
+                current.add(w);
+            } else {
+                processUpstageLine(result, current);
+                current.clear();
+                current.add(w);
+            }
+            lastCY = cy; lastH = h;
+        }
+
+        processUpstageLine(result, current);
+        return result.toString().trim();
+    }
+    private void processUpstageLine(StringBuilder result, List<UpstageOcrResponse.Word> line) {
+        line.sort(Comparator.comparingDouble(w -> getMinXUp(w.boundingBox())));
+        String lineText = line.stream().map(UpstageOcrResponse.Word::text).collect(Collectors.joining(" "));
+        result.append(lineText).append("\n");
+    }
+
+    private double getCenterYUp(UpstageOcrResponse.BoundingBox box) {
+        double minY = box.vertices().stream().mapToDouble(v -> v.y()).min().orElse(0);
+        double maxY = box.vertices().stream().mapToDouble(v -> v.y()).max().orElse(0);
+        return (minY + maxY) / 2.0;
+    }
+
+    private double getHeightUp(UpstageOcrResponse.BoundingBox box) {
+        double minY = box.vertices().stream().mapToDouble(v -> v.y()).min().orElse(0);
+        double maxY = box.vertices().stream().mapToDouble(v -> v.y()).max().orElse(0);
+        return maxY - minY;
+    }
+
+    private double getMinXUp(UpstageOcrResponse.BoundingBox box) {
+        return box.vertices().stream()
+                .mapToDouble(v -> v.x())
+                .min()
+                .orElse(0);
+    }
+
 
     public String extractTransaction(MultipartFile image) throws IOException {
         ClovaOcrRequest clovaOcrRequest = ClovaOcrRequest.from(
@@ -135,4 +227,5 @@ public class OcrService {
                 .min()
                 .orElse(0);
     }
+
 }

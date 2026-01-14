@@ -24,7 +24,10 @@ public class LocalDateParser {
 
         for (DateTimeFormatter formatter : FORMATTERS) {
             try {
-                return LocalDate.parse(value, formatter);
+                LocalDate parsed = LocalDate.parse(value, formatter);
+                if (parsed.getYear() == 0) {
+                    return parsed.withYear(LocalDate.now().getYear());
+                }
             } catch (DateTimeParseException ignored) {
                 return LocalDate.now();
             }

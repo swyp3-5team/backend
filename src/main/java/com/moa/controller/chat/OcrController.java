@@ -20,11 +20,18 @@ import java.io.IOException;
 public class OcrController {
     private final OcrService ocrService;
 
-    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(path = "/clova", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> extractTransaction(
             @RequestPart("file") MultipartFile file
     ) throws IOException {
         return ResponseEntity.ok().body(ocrService.extractTransaction(file));
+    }
+
+    @PostMapping(path = "/upstage", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<String> UpstageOcrTest(
+            @RequestPart("file") MultipartFile file
+    ) throws IOException {
+        return ResponseEntity.ok().body(ocrService.upstageOcr(file));
     }
 
 }
