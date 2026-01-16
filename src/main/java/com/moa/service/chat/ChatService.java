@@ -1,16 +1,11 @@
 package com.moa.service.chat;
 
 import com.moa.config.chat.ClovaStudioConfig;
-import com.moa.dto.AiTransactionResponse;
-import com.moa.dto.TransactionDetailRequest;
-import com.moa.dto.UpstageLLMRequest;
+import com.moa.dto.*;
 import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ReceiptResponse;
 import com.moa.dto.chat.clova.ClovaStudioRequest;
-import com.moa.entity.AiChattingLog;
-import com.moa.entity.CharacterEmotionType;
-import com.moa.entity.GreetingByTimeType;
-import com.moa.entity.User;
+import com.moa.entity.*;
 import com.moa.exception.InvalidImageException;
 import com.moa.exception.UserNotFoundException;
 import com.moa.reponse.AiReceiptResponse;
@@ -157,20 +152,6 @@ public class ChatService {
         );
 
         log.info("영수증 모드 userId : {}", userId);
-
-        // 3. 사용자 메시지 저장 (임베딩 벡터 포함)
-        if (userMessage != null) {
-            List<Double> userEmbedding = clovaStudioService.embedText(userMessage);
-            String embeddingVectorStr = convertEmbeddingToString(userEmbedding);
-
-            AiChattingLog userLog = AiChattingLog.builder()
-                    .user(user)
-                    .chatContent(userMessage)
-                    .chatType("USER")
-                    .embeddingVector(embeddingVectorStr)
-                    .build();
-            userLog = chattingLogRepository.save(userLog);
-        }
         String text = null;
         String OcrText = null;
         if (image != null) {
@@ -179,7 +160,42 @@ public class ChatService {
         }
         text = userMessage;
 
-        return getStructuredOutput(text, OcrText);
+        AiReceiptResponse response = getStructuredOutput(text, OcrText);
+        AiTransactionResponse data = response.request();
+        String embeddingText = toNaturalText(
+                new TransactionGroupInfo(
+                        null,
+                        data.transactionDate(),
+                        data.totalAmount(),
+                        data.place(),
+                        data.payment(),
+                        data.paymentMemo(),
+                        data.emotion(),
+                        data.transactions().stream().map(
+                                tr -> {
+                                    return new TransactionInfo(
+                                            null,
+                                            tr.name(),
+                                            tr.amount(),
+                                            null,
+                                            tr.categoryName(),
+                                            "EXPENSE"
+                                    );
+                                }).toList()
+
+                )
+        );
+
+        String strEmbedding = convertEmbeddingToString(clovaStudioService.embedText(embeddingText));
+        log.info("자연어 생성 및 임베딩 생성 \nNatural String: ${} \nEmbedding: ${}", embeddingText, strEmbedding);
+        AiChattingLog userLog = AiChattingLog.builder()
+                .user(user)
+                .chatContent(userMessage)
+                .chatType("USER")
+                .embeddingVector(strEmbedding)
+                .build();
+        chattingLogRepository.save(userLog);
+        return response;
     }
 
     private AiReceiptResponse getStructuredOutput(String text, String OcrText) {
@@ -250,7 +266,6 @@ public class ChatService {
                     );
                 }
         ).toList();
-
         return new AiReceiptResponse(
                 response.comment(),
                 new AiTransactionResponse(
@@ -394,6 +409,63 @@ public class ChatService {
             throw new InvalidImageException("이미지 처리 중 오류가 발생했습니다.");
         }
     }
+
+    /*
+     * 지출내역을 자연스러운 문장으로 변환
+     * */
+    public String toNaturalText(TransactionGroupInfo group) {
+        List<TransactionInfo> transactions = group.transactionInfoList();
+        StringBuilder sb = new StringBuilder();
+
+        // 날짜
+        LocalDate date = group.transactionDate();
+        sb.append(String.format("%d년 %d월 %d일", date.getYear(), date.getMonthValue(), date.getDayOfMonth()));
+
+        // 장소
+        if (group.place() != null && !group.place().isBlank()) {
+            sb.append(" ").append(group.place()).append("에서 ");
+        } else {
+            sb.append("에서 ");
+        }
+
+        // 아이템들 나열
+        List<String> items = new ArrayList<>();
+        for (TransactionInfo t : transactions) {
+            String itemStr = String.format("%s(%d원%s)",
+                    t.name(),
+                    t.amount(),
+                    t.categoryName() != null ? ", " + t.categoryName() : ""
+            );
+            items.add(itemStr);
+        }
+
+        sb.append(String.join(", ", items));
+
+        // 결제수단
+        if (group.payment() != null) {
+            sb.append("을 ").append(mapPayment(group.payment())).append("으로 결제함.");
+        } else {
+            sb.append("을 결제함.");
+        }
+
+        // 감정 표현
+        if (group.emotion() != null) {
+            sb.append(" ");
+            sb.append(TransactionEmotion.parseEmotion(group.emotion()).getNaturalString());
+        }
+
+        return sb.toString().trim();
+    }
+
+    private String mapPayment(String payment) {
+        return switch (payment) {
+            case "CARD" -> "카드";
+            case "CASH" -> "현금";
+            case "TRANSFER" -> "계좌이체";
+            default -> payment;
+        };
+    }
+
 
     public List<ChatHistoryResponse> getChatHistory(Long userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);

@@ -3,7 +3,10 @@ package com.moa.service.chat.clova;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.moa.config.chat.ClovaStudioConfig;
-import com.moa.dto.*;
+import com.moa.dto.AiJson;
+import com.moa.dto.AiTransactionResponse;
+import com.moa.dto.Hcx007RequestDto;
+import com.moa.dto.TransactionDetailRequest;
 import com.moa.dto.chat.clova.ClovaEmbeddingRequest;
 import com.moa.dto.chat.clova.ClovaEmbeddingResponse;
 import com.moa.dto.chat.clova.ClovaStudioRequest;
@@ -16,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
@@ -52,8 +56,18 @@ public class ClovaStudioService {
                     .header("Authorization", "Bearer " + clovaConfig.getApiKey())
                     .header("Content-Type", "application/json")
                     .bodyValue(request)
-                    .retrieve()
-                    .bodyToMono(ClovaStudioResponse.class)
+                    .exchangeToMono(clientResponse -> {
+                        if (clientResponse.statusCode().is2xxSuccessful()) {
+                            return clientResponse.bodyToMono(ClovaStudioResponse.class);
+                        } else {
+                            return clientResponse.bodyToMono(String.class)
+                                    .flatMap(errorBody -> {
+                                        log.error("[Clova ERROR] status={}, body={}",
+                                                clientResponse.statusCode(), errorBody);
+                                        return Mono.error(new RuntimeException(errorBody));
+                                    });
+                        }
+                    })
                     .block();
 
             // 응답 검증
