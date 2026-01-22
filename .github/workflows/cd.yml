@@ -1,5 +1,4 @@
 name: Java CD
-runs-on: self-hosted
 on:
   push:
     branches: [ "prod" ]
@@ -13,7 +12,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: github.event_name == 'push' || github.event.pull_request.merged == true
 
     steps:
