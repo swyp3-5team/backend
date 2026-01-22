@@ -1,14 +1,22 @@
 package com.moa.entity;
 
+import lombok.Getter;
+
+@Getter
 public enum TransactionEmotion {
 
-    NEUTRAL,        // 일상
-    STRESS_RELIEF,  // 스트레스 해소
-    REWARD,         // 보상 심리
-    IMPULSE,        // 충동 구매
-    REGRET,         // 후회
-    SATISFACTION;    // 만족
+    NEUTRAL("무심하게 소비"),        // 일상
+    STRESS_RELIEF("스트레스를 풀기 위해 소비"),  // 스트레스 해소
+    REWARD("보상 심리로 소비"),         // 보상 심리
+    IMPULSE("충동적으로 소비"),        // 충동 구매
+    REGRET("후회하는 소비"),         // 후회
+    SATISFACTION("만족스러운 소비");    // 만족
 
+    private final String naturalString;
+
+    TransactionEmotion(String naturalString) {
+        this.naturalString = naturalString;
+    }
     /**
      * Emotion 문자열을 TransactionEmotion으로 변환
      */
@@ -57,5 +65,6 @@ public enum TransactionEmotion {
 
         return NEUTRAL;
     }
+
 }
 

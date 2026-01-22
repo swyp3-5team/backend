@@ -1,20 +1,19 @@
 package com.moa.service.chat;
 
 import com.moa.config.chat.ClovaStudioConfig;
-import com.moa.dto.Hcx007RequestDto;
+import com.moa.dto.*;
 import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ReceiptResponse;
 import com.moa.dto.chat.clova.ClovaStudioRequest;
-import com.moa.entity.AiChattingLog;
-import com.moa.entity.CharacterEmotionType;
-import com.moa.entity.GreetingByTimeType;
-import com.moa.entity.User;
+import com.moa.entity.*;
 import com.moa.exception.InvalidImageException;
 import com.moa.exception.UserNotFoundException;
 import com.moa.reponse.AiReceiptResponse;
 import com.moa.repository.AiChattingLogRepository;
 import com.moa.repository.UserRepository;
 import com.moa.service.OcrService;
+import com.moa.service.UpstageLLMResponse;
+import com.moa.service.UpstageStudioService;
 import com.moa.service.chat.clova.ClovaStudioService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -35,7 +35,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.moa.config.chat.ClovaStudioConfig.OCR_ANALYSIS_INSTRUCTION;
+import static com.moa.util.LocalDateParser.parseLocalDate;
 
 /**
  * 채팅 비즈니스 로직 서비스
@@ -47,6 +47,7 @@ import static com.moa.config.chat.ClovaStudioConfig.OCR_ANALYSIS_INSTRUCTION;
 public class ChatService {
 
     private final ClovaStudioService clovaStudioService;
+    private final UpstageStudioService upstageStudioService;
     private final AiChattingLogRepository chattingLogRepository;
     private final UserRepository userRepository;
     private final ClovaStudioConfig clovaConfig;
@@ -63,7 +64,7 @@ public class ChatService {
             StringBuilder ragContext = null;
             List<AiChattingLog> similarChats = new ArrayList<>();
             // 2. 사용자 메시지 임베딩 벡터 생성 (RAG용)
-            if(userMessage != null) {
+            if (userMessage != null) {
                 List<Double> userEmbedding = clovaStudioService.embedText(userMessage);
                 String embeddingVectorStr = convertEmbeddingToString(userEmbedding);
                 // 3. 사용자 메시지 저장 (임베딩 벡터 포함)
@@ -151,40 +152,69 @@ public class ChatService {
         );
 
         log.info("영수증 모드 userId : {}", userId);
-
-        // 3. 사용자 메시지 저장 (임베딩 벡터 포함)
-        if (userMessage != null) {
-            List<Double> userEmbedding = clovaStudioService.embedText(userMessage);
-            String embeddingVectorStr = convertEmbeddingToString(userEmbedding);
-
-            AiChattingLog userLog = AiChattingLog.builder()
-                    .user(user)
-                    .chatContent(userMessage)
-                    .chatType("USER")
-                    .embeddingVector(embeddingVectorStr)
-                    .build();
-            userLog = chattingLogRepository.save(userLog);
-        }
         String text = null;
         String OcrText = null;
         if (image != null) {
-            OcrText = ocrService.extractTransaction(image); // OCR text 출력
+            OcrText = ocrService.upstageOcr(image); // OCR text 출력
             log.info("OCR Text : {}", text);
         }
         text = userMessage;
 
-        return getStructuredOutput(text, OcrText);
+        AiReceiptResponse response = getStructuredOutput(text, OcrText);
+        AiTransactionResponse data = response.request();
+        String embeddingText = toNaturalText(
+                new TransactionGroupInfo(
+                        null,
+                        data.transactionDate(),
+                        data.totalAmount(),
+                        data.place(),
+                        data.payment(),
+                        data.paymentMemo(),
+                        data.emotion(),
+                        data.transactions().stream().map(
+                                tr -> {
+                                    return new TransactionInfo(
+                                            null,
+                                            tr.name(),
+                                            tr.amount(),
+                                            null,
+                                            tr.categoryName(),
+                                            "EXPENSE"
+                                    );
+                                }).toList()
+
+                )
+        );
+
+        String strEmbedding = convertEmbeddingToString(clovaStudioService.embedText(embeddingText));
+        log.info("자연어 생성 및 임베딩 생성 \nNatural String: ${} \nEmbedding: ${}", embeddingText, strEmbedding);
+        AiChattingLog userLog = AiChattingLog.builder()
+                .user(user)
+                .chatContent(userMessage)
+                .chatType("USER")
+                .embeddingVector(strEmbedding)
+                .build();
+        chattingLogRepository.save(userLog);
+        return response;
     }
 
     private AiReceiptResponse getStructuredOutput(String text, String OcrText) {
         //프롬프트 구성
-        List<Hcx007RequestDto.Message> prompts = new ArrayList<>();
-        Hcx007RequestDto.Message systemPrompt = Hcx007RequestDto.Message.builder()
-                .role("system")
-                .content(OCR_ANALYSIS_INSTRUCTION)
-                .build();
+        List<UpstageLLMRequest.Message> prompts = new ArrayList<>();
+        String OCR_ANALYSIS_INSTRUCTION = String.format(ClovaStudioConfig.OCR_ANALYSIS_INSTRUCTION, LocalDate.now().toString());
+//        Hcx007RequestDto.Message systemPrompt = Hcx007RequestDto.Message.builder()
+//                .role("system")
+//                .content(OCR_ANALYSIS_INSTRUCTION)
+//                .build();
 
-        prompts.add(systemPrompt);
+
+        // 시스템 프롬프트
+        prompts.add(
+                UpstageLLMRequest.Message.builder()
+                        .role("system")
+                        .content(OCR_ANALYSIS_INSTRUCTION)
+                        .build()
+        );
         StringBuilder userContent = new StringBuilder();
         if (text != null && !text.isBlank()) {
             userContent
@@ -197,35 +227,59 @@ public class ChatService {
                     .append(OcrText)
                     .append("\n\n");
         }
-
+        // 유저 입력
         prompts.add(
-                Hcx007RequestDto.Message.builder()
+                UpstageLLMRequest.Message.builder()
                         .role("user")
                         .content(userContent.toString())
                         .build()
         );
-        for (Hcx007RequestDto.Message message : prompts) {
+        for (UpstageLLMRequest.Message message : prompts) {
             log.info("[{}] content:\n{}", message.getRole(), message.getContent());
         }
 
-
+        UpstageLLMRequest.ResponseFormat responseFormat = UpstageLLMRequest.ResponseFormat.createUpstageResponseFormat();
         // 요청 생성
-        Hcx007RequestDto hcx007RequestDto = Hcx007RequestDto.builder()
+        UpstageLLMRequest upstageLLMRequest = UpstageLLMRequest.builder()
+                .model("solar-pro2")
                 .messages(prompts)
-                .topP(0.8)
-                .topK(0)
-                .maxCompletionTokens(10000)
-                .temperature(0.3)
-                .repetitionPenalty(1.0)
-                .thinking(Hcx007RequestDto.Thinking.builder()
-                        .effort("none")
+                .response_format(UpstageLLMRequest.ResponseFormat.builder()
+                        .type("json_schema")
+                        .json_schema(
+                                UpstageLLMRequest.ResponseFormat.JsonSchema.builder()
+                                        .name("Receipt")
+                                        .strict(true)
+                                        .schema(responseFormat.getJson_schema().getSchema())
+                                        .build()
+                        )
                         .build())
-                .stop(null)
-                .responseFormat(Hcx007RequestDto.ResponseFormat.createResponseFormat())
                 .build();
 
-        String content = clovaStudioService.sendReceiptMessage(hcx007RequestDto);
-        return clovaStudioService.extractTransaction(content);
+        UpstageLLMResponse response = upstageStudioService.sendReceiptMessage(upstageLLMRequest);
+
+        List<UpstageLLMResponse.Item> items = response.items();
+        List<TransactionDetailRequest> detailRequests = items.stream().map(item -> {
+                    return new TransactionDetailRequest(
+                            item.amount(),
+                            item.name(),
+                            item.category()
+                    );
+                }
+        ).toList();
+        return new AiReceiptResponse(
+                response.comment(),
+                new AiTransactionResponse(
+                        response.place(),
+                        parseLocalDate(response.transactionDate()),
+                        response.payment(),
+                        null,
+                        detailRequests.stream().mapToLong(
+                                TransactionDetailRequest::amount
+                        ).sum(),
+                        response.emotion(),
+                        detailRequests
+                )
+        );
     }
 
 
@@ -308,7 +362,7 @@ public class ChatService {
         } else {
             // 텍스트 + 이미지 (멀티모달)
             List<ClovaStudioRequest.MessageContentPart> contentParts = new ArrayList<>();
-            if(text != null) {
+            if (text != null) {
                 // 텍스트 파트 추가
                 contentParts.add(ClovaStudioRequest.MessageContentPart.builder()
                         .type("text")
@@ -355,6 +409,63 @@ public class ChatService {
             throw new InvalidImageException("이미지 처리 중 오류가 발생했습니다.");
         }
     }
+
+    /*
+     * 지출내역을 자연스러운 문장으로 변환
+     * */
+    public String toNaturalText(TransactionGroupInfo group) {
+        List<TransactionInfo> transactions = group.transactionInfoList();
+        StringBuilder sb = new StringBuilder();
+
+        // 날짜
+        LocalDate date = group.transactionDate();
+        sb.append(String.format("%d년 %d월 %d일", date.getYear(), date.getMonthValue(), date.getDayOfMonth()));
+
+        // 장소
+        if (group.place() != null && !group.place().isBlank()) {
+            sb.append(" ").append(group.place()).append("에서 ");
+        } else {
+            sb.append("에서 ");
+        }
+
+        // 아이템들 나열
+        List<String> items = new ArrayList<>();
+        for (TransactionInfo t : transactions) {
+            String itemStr = String.format("%s(%d원%s)",
+                    t.name(),
+                    t.amount(),
+                    t.categoryName() != null ? ", " + t.categoryName() : ""
+            );
+            items.add(itemStr);
+        }
+
+        sb.append(String.join(", ", items));
+
+        // 결제수단
+        if (group.payment() != null) {
+            sb.append("을 ").append(mapPayment(group.payment())).append("으로 결제함.");
+        } else {
+            sb.append("을 결제함.");
+        }
+
+        // 감정 표현
+        if (group.emotion() != null) {
+            sb.append(" ");
+            sb.append(TransactionEmotion.parseEmotion(group.emotion()).getNaturalString());
+        }
+
+        return sb.toString().trim();
+    }
+
+    private String mapPayment(String payment) {
+        return switch (payment) {
+            case "CARD" -> "카드";
+            case "CASH" -> "현금";
+            case "TRANSFER" -> "계좌이체";
+            default -> payment;
+        };
+    }
+
 
     public List<ChatHistoryResponse> getChatHistory(Long userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);

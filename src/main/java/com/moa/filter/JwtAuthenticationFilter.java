@@ -55,8 +55,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 log.debug("JWT 인증 성공 - userId: {}, deviceId: {}, path: {}",
                          userId, deviceId, request.getRequestURI());
-            }else{
-                log.info("JWT 인증 실패 : {}",jwt);
             }
         } catch (Exception e) {
             log.error("JWT 인증 실패: {}", e.getMessage());

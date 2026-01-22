@@ -23,12 +23,13 @@ public interface AiChattingLogRepository extends JpaRepository<AiChattingLog, Lo
     void deleteByUserUserId(Long userId);
 
     @Query(value = """
-            SELECT DISTINCT ON (chat_content) * FROM ai_chatting_log 
-                   WHERE user_id = :userId
-                   AND embedding_vector IS NOT NULL
-                   AND chat_type = 'USER'
-                   ORDER BY chat_content, embedding_vector <=> CAST(:embeddingVector AS vector)
-                   LIMIT :limit
+            SELECT *
+            FROM ai_chatting_log
+            WHERE user_id = :userId
+              AND embedding_vector IS NOT NULL
+              AND chat_type = 'USER'
+            ORDER BY embedding_vector <=> CAST(:embeddingVector AS vector)
+            LIMIT :limit
                    """,
            nativeQuery = true)
     List<AiChattingLog> findSimilarChats(@Param("userId") Long userId,

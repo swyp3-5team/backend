@@ -1,8 +1,10 @@
 name: Java CD
+
 on:
   push:
     branches: [ "prod" ]
   pull_request:
+
     types:
       - closed
     branches:
@@ -14,7 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event.pull_request.merged == true
 
-
     steps:
       - uses: actions/checkout@v4
 
@@ -24,28 +25,44 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
+      # 🔴 핵심: settings.xml 강제 초기화
+      - name: Prepare Maven settings
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0
+                                        https://maven.apache.org/xsd/settings-1.0.0.xsd">
+          </settings>
+          EOF
+
       - name: Build JAR
-        run: mvn -B clean package --file pom.xml
+        run: mvn -B clean package
 
       - name: Copy JAR to server
         uses: appleboy/scp-action@v0.1.7
         with:
+
           host: ${{ secrets.PROD_SSH_HOST }}
           username: ${{ secrets.PROD_SSH_USER }}
           password: ${{ secrets.PROD_SSH_PASSWORD }}
+
           source: target/moa-app-1.0.0.jar
           target: /app
           strip_components: 1
           overwrite: 'true'
 
-
       - name: Restart application
         uses: appleboy/ssh-action@v0.1.7
         with:
+
           host: ${{ secrets.PROD_SSH_HOST }}
           username: ${{ secrets.PROD_SSH_USER }}
           password: ${{ secrets.PROD_SSH_PASSWORD }}
+
           script: |
             cd /app
             ./stopServer.sh
             ./startServer.sh
+

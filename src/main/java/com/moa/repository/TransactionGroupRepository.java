@@ -1,5 +1,6 @@
 package com.moa.repository;
 
+import com.moa.dto.MonthlyCategoryExpenseWithGroupResponse;
 import com.moa.entity.PaymentMethod;
 import com.moa.entity.TransactionEmotion;
 import com.moa.entity.TransactionGroup;
@@ -69,5 +70,28 @@ public interface TransactionGroupRepository extends JpaRepository<TransactionGro
             @Param("payment") PaymentMethod payment,
             @Param("emotion") TransactionEmotion emotion,
             @Param("categoryId") Long categoryId
+    );
+
+    @Query("""
+            SELECT new com.moa.dto.MonthlyCategoryExpenseWithGroupResponse(
+                t.name,
+                t.amount,
+                g.transactionDate,
+                g.emotion,
+                g.payment
+            )
+            FROM Transaction t
+            JOIN t.transactionGroup g
+            WHERE g.user.userId = :userId
+              AND t.category.id = :categoryId
+              AND year(g.transactionDate) = :year
+              AND month(g.transactionDate) = :monthValue
+            ORDER BY g.transactionDate DESC
+            """)
+    List<MonthlyCategoryExpenseWithGroupResponse> findMonthlyTransactionWithGroupByCategoryIdAndUserId(
+            Long userId,
+            Long categoryId,
+            int year,
+            int monthValue
     );
 }
