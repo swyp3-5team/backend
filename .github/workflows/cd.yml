@@ -1,14 +1,11 @@
 name: Java CD
+
 on:
   push:
     branches: [ "prod" ]
   pull_request:
-
-    types:
-      - closed
-    branches:
-      - prod
-
+    branches: [ "prod" ]
+    types: [ closed ]
 
 jobs:
   deploy:
@@ -16,7 +13,8 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.merged == true
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout source
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -24,7 +22,6 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      # 🔴 핵심: settings.xml 강제 초기화
       - name: Prepare Maven settings
         run: |
           mkdir -p ~/.m2
@@ -39,29 +36,14 @@ jobs:
       - name: Build JAR
         run: mvn -B clean package
 
-      - name: Copy JAR to server
-        uses: appleboy/scp-action@v0.1.7
-        with:
+      - name: Deploy to /app
+        run: |
+          echo "Stopping application..."
+          cd /app
+          ./stopServer.sh || true
 
-          host: ${{ secrets.PROD_SSH_HOST }}
-          username: ${{ secrets.PROD_SSH_USER }}
-          password: ${{ secrets.PROD_SSH_PASSWORD }}
+          echo "Copy new JAR..."
+          cp $GITHUB_WORKSPACE/target/moa-app-1.0.0.jar /app/
 
-          source: target/moa-app-1.0.0.jar
-          target: /app
-          strip_components: 1
-          overwrite: 'true'
-
-      - name: Restart application
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-
-          host: ${{ secrets.PROD_SSH_HOST }}
-          username: ${{ secrets.PROD_SSH_USER }}
-          password: ${{ secrets.PROD_SSH_PASSWORD }}
-
-          script: |
-            cd /app
-            ./stopServer.sh
-            ./startServer.sh
-
+          echo "Starting application..."
+          ./startServer.sh
