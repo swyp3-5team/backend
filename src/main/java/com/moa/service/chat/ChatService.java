@@ -190,7 +190,7 @@ public class ChatService {
         log.info("자연어 생성 및 임베딩 생성 \nNatural String: ${} \nEmbedding: ${}", embeddingText, strEmbedding);
         AiChattingLog userLog = AiChattingLog.builder()
                 .user(user)
-                .chatContent(userMessage)
+                .chatContent(embeddingText)
                 .chatType("USER")
                 .embeddingVector(strEmbedding)
                 .build();
