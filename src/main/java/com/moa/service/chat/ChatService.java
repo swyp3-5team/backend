@@ -156,7 +156,7 @@ public class ChatService {
         String OcrText = null;
         if (image != null) {
             OcrText = ocrService.upstageOcr(image); // OCR text 출력
-            log.info("OCR Text : {}", text);
+            log.info("OCR Text : {}", OcrText);
         }
         text = userMessage;
 
@@ -190,7 +190,7 @@ public class ChatService {
         log.info("자연어 생성 및 임베딩 생성 \nNatural String: ${} \nEmbedding: ${}", embeddingText, strEmbedding);
         AiChattingLog userLog = AiChattingLog.builder()
                 .user(user)
-                .chatContent(userMessage)
+                .chatContent(embeddingText)
                 .chatType("USER")
                 .embeddingVector(strEmbedding)
                 .build();
