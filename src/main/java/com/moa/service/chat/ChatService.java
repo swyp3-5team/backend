@@ -271,7 +271,7 @@ public class ChatService {
                 new AiTransactionResponse(
                         response.place(),
                         parseLocalDate(response.transactionDate()),
-                        response.payment(),
+                        PaymentMethod.from(response.payment()).name(),
                         null,
                         detailRequests.stream().mapToLong(
                                 TransactionDetailRequest::amount
