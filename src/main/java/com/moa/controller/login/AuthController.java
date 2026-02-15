@@ -22,7 +22,7 @@ public class AuthController {
     private final JwtService jwtService;
 
     @PostMapping("/refresh")
-    @Operation(summary = "토큰 갱신", description = "Refresh Token으로 새로운 Access Token을 발급합니다.")
+    @Operation(summary = "토큰 갱신", description = "Refresh Token으로 새로운 Access Token과 Refresh Token을 발급합니다.")
     public ResponseEntity<Map<String, String>> refreshToken(
             @RequestHeader("Authorization") String refreshTokenHeader) {
         try {
@@ -31,14 +31,14 @@ public class AuthController {
 
             log.info("토큰 갱신 요청");
 
-            // Refresh Token으로 새 Access Token 발급
-            String newAccessToken = jwtService.refreshAccessToken(refreshToken);
+            // Refresh Token으로 새 Access Token과 Refresh Token 발급 (Rotation)
+            Map<String, String> tokens = jwtService.refreshAccessToken(refreshToken);
 
-            log.info("Access Token 갱신 완료");
-
+            log.info("Access Token & Refresh Token 갱신 완료");
             Map<String, String> response = new HashMap<>();
-            response.put("accessToken", newAccessToken);
-            response.put("message", "Access Token이 갱신되었습니다.");
+            response.put("accessToken", tokens.get("accessToken"));
+            response.put("refreshToken", tokens.get("refreshToken"));
+            response.put("message", "토큰이 갱신되었습니다.");
 
             return ResponseEntity.ok(response);
 

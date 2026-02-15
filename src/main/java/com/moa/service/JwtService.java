@@ -69,9 +69,9 @@ public class JwtService {
     }
 
     /**
-     * Refresh Token으로 새로운 Access Token 발급
+     * Refresh Token으로 새로운 Access Token과 Refresh Token 발급 (Rotation)
      */
-    public String refreshAccessToken(String refreshToken) {
+    public Map<String, String> refreshAccessToken(String refreshToken) {
         if (!jwtTokenProvider.validateToken(refreshToken)) {
             throw new RuntimeException("유효하지 않은 Refresh Token입니다.");
         }
@@ -80,8 +80,14 @@ public class JwtService {
         String deviceId = jwtTokenProvider.getDeviceIdFromToken(refreshToken);
 
         String newAccessToken = jwtTokenProvider.generateAccessToken(userId, deviceId);
-        log.info("Access Token 갱신 - userId: {}, deviceId: {}", userId, deviceId);
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(userId, deviceId);
 
-        return newAccessToken;
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put("accessToken", newAccessToken);
+        tokens.put("refreshToken", newRefreshToken);
+
+        log.info("Access Token & Refresh Token 갱신 (Rotation) - userId: {}, deviceId: {}", userId, deviceId);
+
+        return tokens;
     }
 }

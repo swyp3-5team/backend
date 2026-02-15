@@ -156,7 +156,7 @@ public class ChatService {
         String OcrText = null;
         if (image != null) {
             OcrText = ocrService.upstageOcr(image); // OCR text 출력
-            log.info("OCR Text : {}", text);
+            log.info("OCR Text : {}", OcrText);
         }
         text = userMessage;
 
@@ -271,7 +271,7 @@ public class ChatService {
                 new AiTransactionResponse(
                         response.place(),
                         parseLocalDate(response.transactionDate()),
-                        response.payment(),
+                        PaymentMethod.from(response.payment()).name(),
                         null,
                         detailRequests.stream().mapToLong(
                                 TransactionDetailRequest::amount
