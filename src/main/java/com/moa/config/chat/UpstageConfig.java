@@ -16,4 +16,5 @@ public class UpstageConfig {
 
     private String ocrUri = "https://api.upstage.ai/v1/document-digitization";
     private String chatUri = "https://api.upstage.ai/v1/chat/completions";
+    private String embeddingUri = "https://api.upstage.ai/v1/embeddings";
 }
