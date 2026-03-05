@@ -4,7 +4,7 @@ import com.moa.config.chat.ClovaStudioConfig;
 import com.moa.dto.*;
 import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ReceiptResponse;
-import com.moa.dto.chat.clova.ClovaStudioRequest;
+
 import com.moa.entity.*;
 import com.moa.exception.InvalidImageException;
 import com.moa.exception.UserNotFoundException;
@@ -14,7 +14,7 @@ import com.moa.repository.UserRepository;
 import com.moa.service.OcrService;
 import com.moa.service.UpstageLLMResponse;
 import com.moa.service.UpstageStudioService;
-import com.moa.service.chat.clova.ClovaStudioService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -46,7 +46,7 @@ import static com.moa.util.LocalDateParser.parseLocalDate;
 @Transactional(readOnly = true)
 public class ChatService {
 
-    private final ClovaStudioService clovaStudioService;
+
     private final UpstageStudioService upstageStudioService;
     private final AiChattingLogRepository chattingLogRepository;
     private final UserRepository userRepository;
@@ -65,14 +65,14 @@ public class ChatService {
             List<AiChattingLog> similarChats = new ArrayList<>();
             // 2. 사용자 메시지 임베딩 벡터 생성 (RAG용)
             if (userMessage != null) {
-                List<Double> userEmbedding = clovaStudioService.embedText(userMessage);
-                String embeddingVectorStr = convertEmbeddingToString(userEmbedding);
+                List<Double> userEmbedding = upstageStudioService.embedText(userMessage);
+                String embeddingVectorString = convertEmbeddingToString(userEmbedding);
                 // 3. 사용자 메시지 저장 (임베딩 벡터 포함)
                 AiChattingLog userLog = AiChattingLog.builder()
                         .user(user)
                         .chatContent(userMessage)
                         .chatType("USER")
-                        .embeddingVector(embeddingVectorStr)
+                        .embeddingVector(embeddingVectorString)
                         .build();
                 userLog = chattingLogRepository.save(userLog);
 
@@ -80,7 +80,7 @@ public class ChatService {
 
                 if (userEmbedding != null && !userEmbedding.isEmpty()) {
                     log.info("RAG 벡터 검색 시작 - userId: {}", userId);
-                    similarChats = chattingLogRepository.findSimilarChats(userId, embeddingVectorStr, 5);
+                    similarChats = chattingLogRepository.findSimilarChats(userId, embeddingVectorString, 5);
                     log.info("유사한 과거 대화 {}개 발견", similarChats.size());
                 }
                 // 5: 유사한 과거 대화가 있으면 컨텍스트에 추가
@@ -97,12 +97,12 @@ public class ChatService {
             }
 
             // 6. 메시지 리스트 구성
-            List<ClovaStudioRequest.Message> messages = new ArrayList<>();
+            List<UpstageLLMRequest.Message> messages = new ArrayList<>();
 
             String systemPrompt = clovaConfig.getSystemPrompt();
             log.info("RAG CONTEXT: {}", ragContext);
             // 시스템 프롬프트 추가
-            messages.add(ClovaStudioRequest.Message.builder()
+            messages.add(UpstageLLMRequest.Message.builder()
                     .role("system")
                     .content(ragContext != null ? ragContext.toString() + systemPrompt : systemPrompt)
                     .build());
@@ -110,26 +110,31 @@ public class ChatService {
             // 현재 사용자 메시지 추가 (이미지 포함 여부에 따라 처리)
             messages.add(buildUserMessage(userMessage, image));
 
-            log.info("Clova Studio API 호출 - 메시지 개수: {}, RAG 활성화: {}",
+            log.info("Upstage Studio API 호출 - 메시지 개수: {}, RAG 활성화: {}",
                     messages.size(), !similarChats.isEmpty());
 
-            // 7. Clova Studio API 호출
-            String aiResponse = clovaStudioService.sendMessage(messages);
+            UpstageLLMRequest request = UpstageLLMRequest.builder()
+                    .model("solar-pro2")
+                    .messages(messages)
+                    .build();
+
+            // 7. Upstage API 호출
+            String aiResponse = upstageStudioService.sendMessage(request);
 
 //            // 8. JSON 파싱 (거래내역 추출)
 //            ChatResponse cleanReceiptResponse = extractTransactionGroupInfo(aiResponse);
 //            TransactionGroupInfo transactionGroupInfo = cleanReceiptResponse != null ? cleanReceiptResponse.getTransactionInfo() : null;
 
             // 9. AI 응답 임베딩 벡터 생성 및 저장
-            List<Double> aiEmbedding = clovaStudioService.embedText(aiResponse);
-            String aiEmbeddingVectorStr = convertEmbeddingToString(aiEmbedding);
+            List<Double> aiEmbedding = upstageStudioService.embedText(aiResponse);
+            String embeddingVectorString = convertEmbeddingToString(aiEmbedding);
 
             AiChattingLog assistantLog = AiChattingLog.builder()
                     .user(user)
                     .chatContent(aiResponse)
                     .chatType("ASSISTANT")
 //                    .emotion(transactionInfo != null ? transactionInfo.getEmotion().name() : null)
-                    .embeddingVector(aiEmbeddingVectorStr)
+                    .embeddingVector(embeddingVectorString)
                     .build();
             assistantLog = chattingLogRepository.save(assistantLog);
 
@@ -186,13 +191,13 @@ public class ChatService {
                 )
         );
 
-        String strEmbedding = convertEmbeddingToString(clovaStudioService.embedText(embeddingText));
-        log.info("자연어 생성 및 임베딩 생성 \nNatural String: ${} \nEmbedding: ${}", embeddingText, strEmbedding);
+        String embedding = convertEmbeddingToString(upstageStudioService.embedText(embeddingText));
+        log.info("자연어 생성 및 임베딩 생성 \nNatural String: ${} \nEmbedding: ${}", embeddingText, embedding);
         AiChattingLog userLog = AiChattingLog.builder()
                 .user(user)
                 .chatContent(embeddingText)
                 .chatType("USER")
-                .embeddingVector(strEmbedding)
+                .embeddingVector(embedding)
                 .build();
         chattingLogRepository.save(userLog);
         return response;
@@ -201,7 +206,7 @@ public class ChatService {
     private AiReceiptResponse getStructuredOutput(String text, String OcrText) {
         //프롬프트 구성
         List<UpstageLLMRequest.Message> prompts = new ArrayList<>();
-        String OCR_ANALYSIS_INSTRUCTION = String.format(ClovaStudioConfig.OCR_ANALYSIS_INSTRUCTION, LocalDate.now().toString());
+        String OCR_ANALYSIS_INSTRUCTION = String.format(ClovaStudioConfig.OCR_ANALYSIS_INSTRUCTION2, LocalDate.now().toString());
 //        Hcx007RequestDto.Message systemPrompt = Hcx007RequestDto.Message.builder()
 //                .role("system")
 //                .content(OCR_ANALYSIS_INSTRUCTION)
@@ -351,38 +356,36 @@ public class ChatService {
     /**
      * 사용자 메시지 생성 (텍스트만 또는 텍스트+이미지)
      */
-    private ClovaStudioRequest.Message buildUserMessage(String text, MultipartFile image) {
+    private UpstageLLMRequest.Message buildUserMessage(String text, MultipartFile image) {
         if (image == null) {
             // 텍스트만 전송 (기존 방식 - 역호환성 유지)
-            return ClovaStudioRequest.Message.builder()
+            return UpstageLLMRequest.Message.builder()
                     .role("user")
                     .content(text)
                     .build();
 
         } else {
             // 텍스트 + 이미지 (멀티모달)
-            List<ClovaStudioRequest.MessageContentPart> contentParts = new ArrayList<>();
-            if (text != null) {
+            List<java.util.Map<String, Object>> contentParts = new ArrayList<>();
+            if (text != null && !text.isEmpty()) {
                 // 텍스트 파트 추가
-                contentParts.add(ClovaStudioRequest.MessageContentPart.builder()
-                        .type("text")
-                        .text(text)
-                        .build());
+                contentParts.add(java.util.Map.of(
+                        "type", "text",
+                        "text", text
+                ));
             }
 
             // 이미지 파트 추가 (Base64 변환)
             String base64Image = convertImageToBase64(image);
-            contentParts.add(ClovaStudioRequest.MessageContentPart.builder()
-                    .type("image_url")
-                    .dataUri(ClovaStudioRequest.ImageData.builder()
-                            .data(base64Image)
-                            .build())
-                    .build());
+            contentParts.add(java.util.Map.of(
+                    "type", "image_url",
+                    "image_url", java.util.Map.of("url", base64Image)
+            ));
 
             log.info("멀티모달 메시지 생성 완료 - 텍스트: {}, 이미지 크기: {} bytes",
                     text, image.getSize());
 
-            return ClovaStudioRequest.Message.builder()
+            return UpstageLLMRequest.Message.builder()
                     .role("user")
                     .content(contentParts)
                     .build();
@@ -534,5 +537,16 @@ public class ChatService {
         }
         sb.append("]");
         return sb.toString();
+    }
+
+
+    private  float[] convertEmbeddingToFloat(List<Double> userEmbedding) {
+        if (userEmbedding == null) return null;
+
+        float[] floatArray = new float[userEmbedding.size()];
+        for (int i = 0; i < userEmbedding.size(); i++) {
+            floatArray[i] = userEmbedding.get(i).floatValue();
+        }
+        return floatArray;
     }
 }
