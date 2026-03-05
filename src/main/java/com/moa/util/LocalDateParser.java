@@ -25,16 +25,18 @@ public class LocalDateParser {
         for (DateTimeFormatter formatter : FORMATTERS) {
             try {
                 LocalDate parsed = LocalDate.parse(value, formatter);
+
                 if (parsed.getYear() == 0) {
                     return parsed.withYear(LocalDate.now().getYear());
                 }
+
+                return parsed;
+
             } catch (DateTimeParseException ignored) {
-                return LocalDate.now();
             }
         }
 
-        throw new IllegalArgumentException(
-                "지원하지 않는 날짜 형식: " + value
-        );
+        return LocalDate.now();
+        // (원하신다면 기존처럼 throw new IllegalArgumentException(...)을 쓰셔도 됩니다.)
     }
 }

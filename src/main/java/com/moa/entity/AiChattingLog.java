@@ -50,7 +50,7 @@ public class AiChattingLog {
      * pgvector 확장 사용
      */
     @Type(VectorType.class)
-    @Column(name = "EMBEDDING_VECTOR", columnDefinition = "vector(1024)")
+    @Column(name = "embedding_vector", columnDefinition = "vector(4096)")
     private String embeddingVector;
 
     @CreationTimestamp
