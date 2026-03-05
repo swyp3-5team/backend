@@ -83,10 +83,13 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // 허용할 Origin (서버)
+        // 허용할 Origin (서버 및 Swagger UI 접속 출처)
         configuration.setAllowedOrigins(Arrays.asList(
             "http://localhost:3000",
-            "http://127.0.0.1:3000"
+            "http://127.0.0.1:3000",
+            "http://localhost:8080",
+            "https://cloverly.site",
+            "http://api.cloverly.site:8080"
         ));
 
         // 허용할 HTTP 메서드
