@@ -269,7 +269,7 @@ public class ChatService {
         return new AiReceiptResponse(
                 response.comment(),
                 new AiTransactionResponse(
-                        Optional.ofNullable(response.place()).orElse(null),
+                        (response.place() == null || response.place().equals("null")) ? null : response.place(),
                         parseLocalDate(response.transactionDate()),
                         PaymentMethod.from(response.payment()).name(),
                         null,
