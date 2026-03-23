@@ -4,7 +4,6 @@ import com.moa.config.chat.ClovaStudioConfig;
 import com.moa.dto.*;
 import com.moa.dto.chat.ChatHistoryResponse;
 import com.moa.dto.chat.ReceiptResponse;
-
 import com.moa.entity.*;
 import com.moa.exception.InvalidImageException;
 import com.moa.exception.UserNotFoundException;
@@ -14,7 +13,6 @@ import com.moa.repository.UserRepository;
 import com.moa.service.OcrService;
 import com.moa.service.UpstageLLMResponse;
 import com.moa.service.UpstageStudioService;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -27,10 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -206,7 +201,7 @@ public class ChatService {
     private AiReceiptResponse getStructuredOutput(String text, String OcrText) {
         //프롬프트 구성
         List<UpstageLLMRequest.Message> prompts = new ArrayList<>();
-        String OCR_ANALYSIS_INSTRUCTION = String.format(ClovaStudioConfig.OCR_ANALYSIS_INSTRUCTION2, LocalDate.now().toString());
+        String OCR_ANALYSIS_INSTRUCTION = String.format(ClovaStudioConfig.OCR_ANALYSIS_INSTRUCTION, LocalDate.now().toString());
 //        Hcx007RequestDto.Message systemPrompt = Hcx007RequestDto.Message.builder()
 //                .role("system")
 //                .content(OCR_ANALYSIS_INSTRUCTION)
@@ -274,7 +269,7 @@ public class ChatService {
         return new AiReceiptResponse(
                 response.comment(),
                 new AiTransactionResponse(
-                        response.place(),
+                        Optional.ofNullable(response.place()).orElse(null),
                         parseLocalDate(response.transactionDate()),
                         PaymentMethod.from(response.payment()).name(),
                         null,
