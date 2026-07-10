@@ -24,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -40,6 +41,8 @@ import static com.moa.util.LocalDateParser.parseLocalDate;
 @Slf4j
 @Transactional(readOnly = true)
 public class ChatService {
+
+    private static final Set<String> INCOME_CATEGORIES = Set.of("용돈", "월급", "기타수입");
 
 
     private final UpstageStudioService upstageStudioService;
@@ -172,17 +175,14 @@ public class ChatService {
                         data.paymentMemo(),
                         data.emotion(),
                         data.transactions().stream().map(
-                                tr -> {
-                                    return new TransactionInfo(
-                                            null,
-                                            tr.name(),
-                                            tr.amount(),
-                                            null,
-                                            tr.categoryName(),
-                                            "EXPENSE"
-                                    );
-                                }).toList()
-
+                                tr -> new TransactionInfo(
+                                        null,
+                                        tr.name(),
+                                        tr.amount(),
+                                        null,
+                                        tr.categoryName(),
+                                        INCOME_CATEGORIES.contains(tr.categoryName()) ? "INCOME" : "EXPENSE"
+                                )).toList()
                 )
         );
 
@@ -258,25 +258,22 @@ public class ChatService {
         UpstageLLMResponse response = upstageStudioService.sendReceiptMessage(upstageLLMRequest);
 
         List<UpstageLLMResponse.Item> items = response.items();
-        List<TransactionDetailRequest> detailRequests = items.stream().map(item -> {
-                    return new TransactionDetailRequest(
-                            item.amount(),
-                            item.name(),
-                            item.category()
-                    );
-                }
+        List<TransactionDetailRequest> detailRequests = items.stream().map(item ->
+                new TransactionDetailRequest(item.amount(), item.name(), item.category())
         ).toList();
+
+        boolean isIncome = !detailRequests.isEmpty() &&
+                detailRequests.stream().allMatch(tr -> INCOME_CATEGORIES.contains(tr.categoryName()));
+
         return new AiReceiptResponse(
                 response.comment(),
                 new AiTransactionResponse(
-                        (response.place() == null || response.place().equals("null")) ? null : response.place(),
+                        (response.place() == null || response.place().trim().equalsIgnoreCase("null")) ? null : response.place(),
                         parseLocalDate(response.transactionDate()),
-                        PaymentMethod.from(response.payment()).name(),
+                        isIncome ? null : PaymentMethod.from(response.payment()).name(),
                         null,
-                        detailRequests.stream().mapToLong(
-                                TransactionDetailRequest::amount
-                        ).sum(),
-                        response.emotion(),
+                        detailRequests.stream().mapToLong(TransactionDetailRequest::amount).sum(),
+                        isIncome ? null : response.emotion(),
                         detailRequests
                 )
         );
@@ -345,7 +342,7 @@ public class ChatService {
     }
 
     private String patternText(String value) {
-        return value.isEmpty() || "null".equals(value) ? null : value;  // 빈 문자열/null 은 null 반환
+        return value.isEmpty() || "null".equalsIgnoreCase(value.trim()) ? null : value;  // 빈 문자열/null 은 null 반환
     }
 
     /**
@@ -471,6 +468,24 @@ public class ChatService {
                 .findByUserUserIdOrderByCreatedAtDesc(userId, pageable);
 
         return logs.getContent().stream()
+                .map(ChatHistoryResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    public List<ChatHistoryResponse> getChatHistoryByDate(Long userId, LocalDate date) {
+        LocalDateTime start = date.atStartOfDay();
+        LocalDateTime end = date.atTime(LocalTime.MAX);
+        return chattingLogRepository
+                .findByUserUserIdAndCreatedAtBetweenOrderByCreatedAtAsc(userId, start, end)
+                .stream()
+                .map(ChatHistoryResponse::from)
+                .collect(Collectors.toList());
+    }
+
+    public List<ChatHistoryResponse> getAllChatHistory(Long userId) {
+        return chattingLogRepository
+                .findByUserUserIdOrderByCreatedAtAsc(userId)
+                .stream()
                 .map(ChatHistoryResponse::from)
                 .collect(Collectors.toList());
     }

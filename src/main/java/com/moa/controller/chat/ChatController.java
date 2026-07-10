@@ -12,12 +12,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+    import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -121,6 +123,34 @@ public class ChatController {
             return ResponseEntity.ok(history);
         } catch (Exception e) {
             log.error("히스토리 조회 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @GetMapping("/history/by-date")
+    @Operation(summary = "날짜별 대화 히스토리 조회", description = "특정 날짜의 대화 히스토리를 조회합니다.")
+    public ResponseEntity<List<ChatHistoryResponse>> getChatHistoryByDate(
+            @CurrentUserId Long userId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        try {
+            log.info("사용자 {} 날짜별 대화 히스토리 조회 - 날짜: {}", userId, date);
+            List<ChatHistoryResponse> history = chatService.getChatHistoryByDate(userId, date);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            log.error("날짜별 히스토리 조회 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @GetMapping("/history/all")
+    @Operation(summary = "전체 대화 히스토리 조회", description = "사용자의 모든 대화 히스토리를 조회합니다.")
+    public ResponseEntity<List<ChatHistoryResponse>> getAllChatHistory(@CurrentUserId Long userId) {
+        try {
+            log.info("사용자 {} 전체 대화 히스토리 조회", userId);
+            List<ChatHistoryResponse> history = chatService.getAllChatHistory(userId);
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            log.error("전체 히스토리 조회 실패: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }

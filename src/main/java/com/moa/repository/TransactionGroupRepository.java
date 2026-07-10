@@ -72,6 +72,23 @@ public interface TransactionGroupRepository extends JpaRepository<TransactionGro
             @Param("categoryId") Long categoryId
     );
 
+    /**
+     * 특정 사용자의 특정 월 수입 거래그룹 조회
+     */
+    @Query("SELECT DISTINCT tg FROM TransactionGroup tg " +
+           "JOIN FETCH tg.transactions t " +
+           "JOIN FETCH t.category c " +
+           "WHERE tg.user.id = :userId " +
+           "AND YEAR(tg.transactionDate) = :year " +
+           "AND MONTH(tg.transactionDate) = :month " +
+           "AND c.type = com.moa.entity.CategoryType.INCOME " +
+           "ORDER BY tg.transactionDate DESC")
+    List<TransactionGroup> findMonthlyIncomesByUserId(
+            @Param("userId") Long userId,
+            @Param("year") int year,
+            @Param("month") int month
+    );
+
     @Query("""
             SELECT new com.moa.dto.MonthlyCategoryExpenseWithGroupResponse(
                 t.name,

@@ -20,11 +20,9 @@ public record TransactionGroupInfo(
         return new TransactionGroupInfo(
                 transactionGroup.getId(),
                 transactionGroup.getTransactionDate(),
-                transactionInfos.stream().mapToLong(
-                        TransactionInfo::amount
-                ).sum(),
+                transactionInfos.stream().mapToLong(TransactionInfo::amount).sum(),
                 transactionGroup.getPlace(),
-                transactionGroup.getPayment().name(),
+                transactionGroup.getPayment() != null ? transactionGroup.getPayment().name() : null,
                 transactionGroup.getPaymentMemo(),
                 transactionGroup.getEmotion().name(),
                 transactionInfos

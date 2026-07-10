@@ -101,6 +101,64 @@ public class TransactionService {
     }
 
 
+    @Transactional
+    public Long addIncomeInfo(Long userId, IncomeCreateRequest request) {
+        if (request == null || request.incomes().isEmpty()) {
+            log.info("수입 상세내역은 최소 1개 이상이어야 합니다.");
+            return null;
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        LocalDate transactionDate = request.transactionDate() != null
+                ? request.transactionDate()
+                : LocalDate.now();
+
+        TransactionGroup transactionGroup = TransactionGroup.builder()
+                .user(user)
+                .transactionDate(transactionDate)
+                .place(request.place())
+                .payment(null)
+                .paymentMemo(null)
+                .emotion(TransactionEmotion.NEUTRAL)
+                .build();
+
+        List<Transaction> transactionList = request.incomes().stream().map(tr -> {
+            Category category = findCategory(tr.categoryName());
+            Transaction transaction = Transaction.builder()
+                    .name(tr.name())
+                    .amount(tr.amount())
+                    .category(category)
+                    .transactionGroup(transactionGroup)
+                    .build();
+            transactionGroup.addTransaction(transaction);
+            return transaction;
+        }).toList();
+
+        transactionGroupRepository.save(transactionGroup);
+        transactionRepository.saveAll(transactionList);
+
+        log.info("사용자 {}의 수입 내역 추가 완료", userId);
+        return transactionGroup.getId();
+    }
+
+    public List<TransactionGroupInfo> searchIncomes(Long userId, YearMonth yearMonth) {
+        int year = yearMonth.getYear();
+        int month = yearMonth.getMonthValue();
+
+        List<TransactionGroup> results = transactionGroupRepository.findMonthlyIncomesByUserId(userId, year, month);
+
+        log.info("수입 내역 조회 완료 - userId: {}, yearMonth: {}, 결과: {}건", userId, yearMonth, results.size());
+
+        return results.stream()
+                .map(tg -> TransactionGroupInfo.from(
+                        tg,
+                        tg.getTransactions().stream().map(TransactionInfo::from).toList()
+                ))
+                .toList();
+    }
+
     /**
      * Pattern 문자열을 CategoryType으로 변환
      */
@@ -242,6 +300,10 @@ public class TransactionService {
                         tg.getTransactions().stream().map(TransactionInfo::from).toList()
                 ))
                 .toList();
+    }
+
+    private String nullSafe(String value) {
+        return (value == null || value.equalsIgnoreCase("null") || value.isBlank()) ? null : value;
     }
 
     /**

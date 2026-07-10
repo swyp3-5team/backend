@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -38,4 +39,11 @@ public interface AiChattingLogRepository extends JpaRepository<AiChattingLog, Lo
 
     // 최근 N개의 대화 기록 조회 (시간순 내림차순)
     List<AiChattingLog> findTop6ByUserUserIdOrderByCreatedAtDesc(Long userId);
+
+    // 특정 날짜 범위의 대화 조회 (오래된 순)
+    List<AiChattingLog> findByUserUserIdAndCreatedAtBetweenOrderByCreatedAtAsc(
+            Long userId, LocalDateTime start, LocalDateTime end);
+
+    // 전체 대화 조회 (오래된 순)
+    List<AiChattingLog> findByUserUserIdOrderByCreatedAtAsc(Long userId);
 }

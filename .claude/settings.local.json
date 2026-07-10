@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn -B clean package -DskipTests)",
+      "WebFetch(domain:ai.google.dev)"
+    ]
+  }
+}
